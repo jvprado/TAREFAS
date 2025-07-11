@@ -1,0 +1,2495 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Desenvolvimento Pessoal</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the calendar to ensure responsiveness and dark mode compatibility */
+        .custom-calendar {
+            font-family: 'Inter', sans-serif;
+        }
+        .custom-calendar .grid-cols-7 {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+        }
+        .custom-calendar button {
+            transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+        }
+        .custom-calendar .relative {
+            position: relative;
+        }
+        .custom-calendar .absolute {
+            position: absolute;
+        }
+        .custom-calendar .bottom-0 { bottom: 0; }
+        .custom-calendar .left-0 { left: 0; }
+        .custom-calendar .right-0 { right: 0; }
+        .custom-calendar .text-center { text-align: center; }
+        .custom-calendar .text-xs { font-size: 0.75rem; }
+        .custom-calendar .rounded-full { border-radius: 9999px; }
+        .custom-calendar .px-1\.5 { padding-left: 0.375rem; padding-right: 0.375rem; }
+        .custom-calendar .py-0\.5 { padding-top: 0.125rem; padding-bottom: 0.125rem; }
+
+        /* Dark mode specific calendar styles */
+        .dark .custom-calendar .bg-gray-700 { background-color: #374151; }
+        .dark .custom-calendar .text-white { color: #ffffff; }
+        .dark .custom-calendar .border-gray-600 { border-color: #4B5563; }
+        .dark .custom-calendar .text-gray-400 { color: #9CA3AF; }
+        .dark .custom-calendar .bg-gray-600 { background-color: #4B5563; }
+        .dark .custom-calendar .text-gray-200 { color: #E5E7EB; }
+        .dark .custom-calendar .hover\:bg-gray-500:hover { background-color: #6B7280; }
+        .dark .custom-calendar .bg-blue-600 { background-color: #2563EB; }
+        .dark .custom-calendar .bg-blue-800 { background-color: #1E40AF; }
+
+        /* General dark mode adjustments for inputs/selects/textareas */
+        .dark input, .dark select, .dark textarea {
+            background-color: #374151 !important;
+            border-color: #4B5563 !important;
+            color: #ffffff !important;
+        }
+        .dark label {
+            color: #D1D5DB !important;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-100 to-purple-100 text-gray-800 flex items-center justify-center p-4 font-sans transition-colors duration-300">
+
+    <!-- Main Container -->
+    <div id="app-container" class="p-8 rounded-xl shadow-2xl w-full max-w-md bg-white">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-4xl font-extrabold text-gray-800 text-center flex-grow">
+                Gerenciador de Desenvolvimento Pessoal
+            </h1>
+            <button id="darkModeToggle" class="p-1.5 rounded-full bg-gray-200 text-gray-700 hover:scale-110 transition-transform duration-200" title="Modo Escuro">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- User ID Display -->
+        <div id="userIdDisplay" class="text-sm text-gray-500 mb-4 text-center break-all">
+            ID do Usuário: <span id="userIdValue" class="font-mono text-gray-700"></span>
+        </div>
+
+        <!-- Pontuação Total e Nível -->
+        <div class="text-center text-lg font-semibold mb-6">
+            Pontuação Total: <span id="totalScore" class="text-blue-600">0</span> |
+            Nível: <span id="userLevel" class="text-green-600">1</span>
+        </div>
+        <div id="achievementsDisplay" class="text-center text-sm text-gray-600 mb-6">
+            <!-- Achievements will be displayed here -->
+        </div>
+
+        <!-- View Mode Toggle -->
+        <div class="flex justify-center mb-6 space-x-1.5">
+            <button id="listViewBtn" class="px-3 py-1.5 rounded-lg text-xs font-medium transition duration-200 ease-in-out bg-blue-600 text-white shadow-md">
+                Atividades
+            </button>
+            <button id="calendarViewBtn" class="px-3 py-1.5 rounded-lg text-xs font-medium transition duration-200 ease-in-out bg-gray-200 text-gray-700 hover:bg-gray-300">
+                Calendário
+            </button>
+            <button id="goalsViewBtn" class="px-3 py-1.5 rounded-lg text-xs font-medium transition duration-200 ease-in-out bg-gray-200 text-gray-700 hover:bg-gray-300">
+                Metas
+            </button>
+            <button id="journalViewBtn" class="px-3 py-1.5 rounded-lg text-xs font-medium transition duration-200 ease-in-out bg-gray-200 text-gray-700 hover:bg-gray-300">
+                Diário
+            </button>
+            <button id="habitsViewBtn" class="px-3 py-1.5 rounded-lg text-xs font-medium transition duration-200 ease-in-out bg-gray-200 text-gray-700 hover:bg-gray-300">
+                Hábitos
+            </button>
+            <button id="areasViewBtn" class="px-3 py-1.5 rounded-lg text-xs font-medium transition duration-200 ease-in-out bg-gray-200 text-gray-700 hover:bg-gray-300">
+                Áreas
+            </button>
+        </div>
+
+        <!-- Content Area -->
+        <div id="contentArea">
+            <!-- List View (Activities) -->
+            <div id="listView" class="block">
+                <!-- Add New Activity Section -->
+                <div class="mb-6 space-y-2">
+                    <input type="text" id="newActivityText" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 ease-in-out" placeholder="Adicionar nova atividade...">
+                    <input type="text" id="newActivityCategory" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 ease-in-out" placeholder="Categoria (opcional)">
+                    <input type="date" id="newActivityDueDate" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 ease-in-out">
+                    <select id="newActivityPriority" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 ease-in-out">
+                        <option value="Baixa">Prioridade: Baixa</option>
+                        <option value="Média">Prioridade: Média</option>
+                        <option value="Alta">Prioridade: Alta</option>
+                    </select>
+                    <textarea id="newActivitySubtasks" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 ease-in-out resize-y" placeholder="Subtarefas (uma por linha, opcional)" rows="2"></textarea>
+                    <select id="newActivityGoal" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 ease-in-out">
+                        <option value="">Vincular a uma Meta (opcional)</option>
+                        <!-- Options will be dynamically loaded -->
+                    </select>
+                    <select id="newActivityArea" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 ease-in-out">
+                        <option value="">Vincular a uma Área da Vida (opcional)</option>
+                        <!-- Options will be dynamically loaded -->
+                    </select>
+
+                    <div class="flex space-x-1.5">
+                        <button id="addActivityBtn" class="flex-grow p-2.5 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-200 ease-in-out transform hover:scale-105 flex items-center justify-center" title="Adicionar Atividade">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Adicionar
+                        </button>
+                        <button id="clearNewActivityBtn" class="p-2.5 bg-red-500 text-white rounded-lg shadow-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-50 transition duration-200 ease-in-out transform hover:scale-105" title="Limpar Entrada">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Search and Filter Section -->
+                <div class="mb-6">
+                    <input type="text" id="searchTermInput" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition duration-200 ease-in-out mb-4" placeholder="Pesquisar atividades ou categorias...">
+                    <div class="flex justify-center space-x-1.5">
+                        <button id="filterAllBtn" class="px-3 py-1.5 rounded-lg text-xs font-medium transition duration-200 ease-in-out bg-blue-600 text-white shadow-md">
+                            Todas
+                        </button>
+                        <button id="filterActiveBtn" class="px-3 py-1.5 rounded-lg text-xs font-medium transition duration-200 ease-in-out bg-gray-200 text-gray-700 hover:bg-gray-300">
+                            Ativas
+                        </button>
+                        <button id="filterCompletedBtn" class="px-3 py-1.5 rounded-lg text-xs font-medium transition duration-200 ease-in-out bg-gray-200 text-gray-700 hover:bg-gray-300">
+                            Concluídas
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Activities List -->
+                <ul id="activitiesList" class="space-y-2">
+                    <!-- Activities will be rendered here -->
+                </ul>
+
+                <!-- Clear Completed Button -->
+                <div id="clearCompletedContainer" class="mt-4 text-center hidden">
+                    <button id="clearCompletedBtn" class="px-5 py-2.5 bg-purple-600 text-white rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 transition duration-200 ease-in-out transform hover:scale-105">
+                        Limpar Concluídas
+                    </button>
+                </div>
+            </div>
+
+            <!-- Calendar View -->
+            <div id="calendarView" class="hidden">
+                <div id="customCalendarComponent"></div>
+                <h3 id="calendarActivitiesTitle" class="text-lg font-bold mt-4 mb-3 text-gray-800">
+                    Atividades para <span id="selectedDateText"></span>:
+                </h3>
+                <ul id="calendarActivitiesList" class="space-y-2">
+                    <!-- Activities for selected date will be rendered here -->
+                </ul>
+            </div>
+
+            <!-- Goals View -->
+            <div id="goalsView" class="hidden">
+                <h2 class="text-xl font-bold mb-4 text-gray-800 text-center">Minhas Metas</h2>
+                <div class="mb-4 space-y-2">
+                    <input type="text" id="newGoalName" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nome da Meta">
+                    <textarea id="newGoalDescription" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y" placeholder="Descrição da Meta" rows="2"></textarea>
+                    <label for="newGoalStartDate" class="block text-sm font-medium text-gray-700">Data de Início:</label>
+                    <input type="date" id="newGoalStartDate" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label for="newGoalDueDate" class="block text-sm font-medium text-gray-700">Prazo:</label>
+                    <input type="date" id="newGoalGoalDueDate" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select id="newGoalStatus" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="Não Iniciada">Não Iniciada</option>
+                        <option value="Em Progresso">Em Progresso</option>
+                        <option value="Concluída">Concluída</option>
+                        <option value="Atrasada">Atrasada</option>
+                        <option value="Abandonada">Abandonada</option>
+                    </select>
+                    <label for="newGoalProgress" class="block text-sm font-medium text-gray-700">Progresso (%):</label>
+                    <input type="number" id="newGoalProgress" min="0" max="100" value="0" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select id="newGoalArea" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 ease-in-out">
+                        <option value="">Vincular a uma Área da Vida (opcional)</option>
+                        <!-- Options will be dynamically loaded -->
+                    </select>
+                    <button id="addGoalBtn" class="w-full p-2.5 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 ease-in-out transform hover:scale-105">
+                        Adicionar Meta
+                    </button>
+                </div>
+                <ul id="goalsList" class="space-y-3">
+                    <!-- Goals will be rendered here -->
+                </ul>
+            </div>
+
+            <!-- Journal View -->
+            <div id="journalView" class="hidden">
+                <h2 class="text-xl font-bold mb-4 text-gray-800 text-center">Meu Diário de Progresso</h2>
+                <div class="mb-4 space-y-2">
+                    <label for="newJournalDate" class="block text-sm font-medium text-gray-700">Data:</label>
+                    <input type="date" id="newJournalDate" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="text" id="newJournalTitle" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Título da Entrada">
+                    <textarea id="newJournalContent" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y" placeholder="Conteúdo da Entrada do Diário" rows="4"></textarea>
+                    <select id="newJournalGoal" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Vincular a uma Meta (opcional)</option>
+                        <!-- Options will be dynamically loaded -->
+                    </select>
+                    <select id="newJournalArea" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 ease-in-out">
+                        <option value="">Vincular a uma Área da Vida (opcional)</option>
+                        <!-- Options will be dynamically loaded -->
+                    </select>
+                    <button id="addJournalEntryBtn" class="w-full p-2.5 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 ease-in-out transform hover:scale-105">
+                        Adicionar Entrada
+                    </button>
+                </div>
+                <ul id="journalEntriesList" class="space-y-3">
+                    <!-- Journal entries will be rendered here -->
+                </ul>
+            </div>
+
+            <!-- Habits View -->
+            <div id="habitsView" class="hidden">
+                <h2 class="text-xl font-bold mb-4 text-gray-800 text-center">Meus Hábitos</h2>
+                <div class="mb-4 space-y-2">
+                    <input type="text" id="newHabitName" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nome do Hábito">
+                    <select id="newHabitFrequency" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="daily">Diário</option>
+                        <option value="weekly">Semanal</option>
+                    </select>
+                    <select id="newHabitArea" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 ease-in-out">
+                        <option value="">Vincular a uma Área da Vida (opcional)</option>
+                        <!-- Options will be dynamically loaded -->
+                    </select>
+                    <button id="addHabitBtn" class="w-full p-2.5 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 ease-in-out transform hover:scale-105">
+                        Adicionar Hábito
+                    </button>
+                </div>
+                <ul id="habitsList" class="space-y-3">
+                    <!-- Habits will be rendered here -->
+                </ul>
+            </div>
+
+            <!-- Areas View -->
+            <div id="areasView" class="hidden">
+                <h2 class="text-xl font-bold mb-4 text-gray-800 text-center">Minhas Áreas da Vida</h2>
+                <div class="mb-4 space-y-2">
+                    <input type="text" id="newAreaName" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nome da Área (ex: Saúde, Carreira)">
+                    <button id="addAreaBtn" class="w-full p-2.5 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 ease-in-out transform hover:scale-105">
+                        Adicionar Área
+                    </button>
+                </div>
+                <ul id="areasList" class="space-y-3">
+                    <!-- Areas will be rendered here -->
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Modal -->
+    <div id="alertModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-5 rounded-lg shadow-xl max-w-xs w-full text-center">
+            <h3 class="text-base font-semibold text-gray-800 mb-3">Aviso</h3>
+            <p id="alertMessage" class="text-sm text-gray-600 mb-4"></p>
+            <button id="alertOkBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-200 ease-in-out">
+                OK
+            </button>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmationModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-5 rounded-lg shadow-xl max-w-xs w-full text-center">
+            <h3 class="text-base font-semibold text-gray-800 mb-3">Confirmação</h3>
+            <p id="confirmationMessage" class="text-sm text-gray-600 mb-4"></p>
+            <div class="flex justify-center space-x-3">
+                <button id="confirmActionBtn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 transition duration-200 ease-in-out">
+                    Confirmar
+                </button>
+                <button id="cancelActionBtn" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 transition duration-200 ease-in-out">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toastNotification" class="fixed bottom-3 right-3 p-3 rounded-lg shadow-lg z-50 hidden text-sm transition-opacity duration-300">
+        <span id="toastMessage"></span>
+    </div>
+
+    <!-- Edit Goal Modal -->
+    <div id="editGoalModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div id="editGoalModalContent" class="bg-white p-5 rounded-lg shadow-xl max-w-xs w-full">
+            <h3 class="text-base font-semibold text-gray-800 mb-3">Editar Meta</h3>
+            <div class="space-y-2 mb-4">
+                <input type="text" id="editGoalName" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nome da Meta">
+                <textarea id="editGoalDescription" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y" placeholder="Descrição da Meta" rows="2"></textarea>
+                <label for="editGoalStartDate" class="block text-sm font-medium text-gray-700">Data de Início:</label>
+                <input type="date" id="editGoalStartDate" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <label for="editGoalDueDate" class="block text-sm font-medium text-gray-700">Prazo:</label>
+                <input type="date" id="editGoalEditDueDate" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <select id="editGoalStatus" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="Não Iniciada">Não Iniciada</option>
+                    <option value="Em Progresso">Em Progresso</option>
+                    <option value="Concluída">Concluída</option>
+                    <option value="Atrasada">Atrasada</option>
+                    <option value="Abandonada">Abandonada</option>
+                </select>
+                <label for="editGoalProgress" class="block text-sm font-medium text-gray-700">Progresso (%):</label>
+                <input type="number" id="editGoalProgress" min="0" max="100" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <select id="editGoalArea" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 ease-in-out">
+                    <option value="">Vincular a uma Área da Vida (opcional)</option>
+                    <!-- Options will be dynamically loaded -->
+                </select>
+            </div>
+            <div class="flex justify-center space-x-3">
+                <button id="saveEditGoalBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-200 ease-in-out">
+                    Salvar
+                </button>
+                <button id="cancelEditGoalBtn" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 transition duration-200 ease-in-out">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Journal Modal -->
+    <div id="editJournalModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div id="editJournalModalContent" class="bg-white p-5 rounded-lg shadow-xl max-w-xs w-full">
+            <h3 class="text-base font-semibold text-gray-800 mb-3">Editar Entrada do Diário</h3>
+            <div class="space-y-2 mb-4">
+                <label for="editJournalDate" class="block text-sm font-medium text-gray-700">Data:</label>
+                <input type="date" id="editJournalDate" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" id="editJournalTitle" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Título da Entrada">
+                <textarea id="editJournalContent" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y" placeholder="Conteúdo da Entrada do Diário" rows="4"></textarea>
+                <select id="editJournalGoal" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Vincular a uma Meta (opcional)</option>
+                    <!-- Options will be dynamically loaded -->
+                </select>
+                <select id="editJournalArea" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 ease-in-out">
+                    <option value="">Vincular a uma Área da Vida (opcional)</option>
+                    <!-- Options will be dynamically loaded -->
+                </select>
+            </div>
+            <div class="flex justify-center space-x-3">
+                <button id="saveEditJournalBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-200 ease-in-out">
+                    Salvar
+                </button>
+                <button id="cancelEditJournalBtn" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 transition duration-200 ease-in-out">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Habit Modal -->
+    <div id="editHabitModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div id="editHabitModalContent" class="bg-white p-5 rounded-lg shadow-xl max-w-xs w-full">
+            <h3 class="text-base font-semibold text-gray-800 mb-3">Editar Hábito</h3>
+            <div class="space-y-2 mb-4">
+                <input type="text" id="editHabitName" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nome do Hábito">
+                <select id="editHabitFrequency" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="daily">Diário</option>
+                    <option value="weekly">Semanal</option>
+                </select>
+                <select id="editHabitArea" class="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 ease-in-out">
+                    <option value="">Vincular a uma Área da Vida (opcional)</option>
+                    <!-- Options will be dynamically loaded -->
+                </select>
+            </div>
+            <div class="flex justify-center space-x-3">
+                <button id="saveEditHabitBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-200 ease-in-out">
+                    Salvar
+                </button>
+                <button id="cancelEditHabitBtn" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 transition duration-200 ease-in-out">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase variables (provided by the environment)
+        const apiKey = ""; // If you want to use models other than gemini-2.0-flash or imagen-3.0-generate-002, provide an API key here. Otherwise, leave this as-is.
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // Global state variables
+        let currentUserId = null;
+        let activities = [];
+        let goals = [];
+        let journalEntries = [];
+        let habits = []; // New: Habits array
+        let areas = []; // New: Areas of Life array
+        let darkMode = false;
+        let viewMode = 'list'; // 'list', 'calendar', 'goals', 'journal', 'habits', 'areas'
+        let selectedCalendarDate = new Date();
+        let totalScore = 0; // Simplified gamification: total score
+        let userLevel = 1; // Gamification: user level
+        let editingGoalId = null; // New state for tracking which goal is being edited
+        let editingJournalId = null; // New state for tracking which journal entry is being edited
+        let editingHabitId = null; // New state for tracking which habit is being edited
+
+        // DOM Elements
+        const appContainer = document.getElementById('app-container');
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const userIdValue = document.getElementById('userIdValue');
+        const totalScoreDisplay = document.getElementById('totalScore');
+        const userLevelDisplay = document.getElementById('userLevel'); // New: User Level Display
+        const achievementsDisplay = document.getElementById('achievementsDisplay'); // New: Achievements Display
+
+        const listViewBtn = document.getElementById('listViewBtn');
+        const calendarViewBtn = document.getElementById('calendarViewBtn');
+        const goalsViewBtn = document.getElementById('goalsViewBtn');
+        const journalViewBtn = document.getElementById('journalViewBtn');
+        const habitsViewBtn = document.getElementById('habitsViewBtn'); // New: Habits View Button
+        const areasViewBtn = document.getElementById('areasViewBtn'); // New: Areas View Button
+
+        const listView = document.getElementById('listView');
+        const calendarView = document.getElementById('calendarView');
+        const goalsView = document.getElementById('goalsView');
+        const journalView = document.getElementById('journalView');
+        const habitsView = document.getElementById('habitsView'); // New: Habits View Section
+        const areasView = document.getElementById('areasView'); // New: Areas View Section
+
+        const newActivityText = document.getElementById('newActivityText');
+        const newActivityCategory = document.getElementById('newActivityCategory');
+        const newActivityDueDate = document.getElementById('newActivityDueDate');
+        const newActivityPriority = document.getElementById('newActivityPriority');
+        const newActivitySubtasks = document.getElementById('newActivitySubtasks');
+        const newActivityGoalSelect = document.getElementById('newActivityGoal');
+        const newActivityAreaSelect = document.getElementById('newActivityArea'); // New: Area Select for Activities
+        const addActivityBtn = document.getElementById('addActivityBtn');
+        const clearNewActivityBtn = document.getElementById('clearNewActivityBtn');
+        const searchTermInput = document.getElementById('searchTermInput');
+        const filterAllBtn = document.getElementById('filterAllBtn');
+        const filterActiveBtn = document.getElementById('filterActiveBtn');
+        const filterCompletedBtn = document.getElementById('filterCompletedBtn');
+        const activitiesList = document.getElementById('activitiesList');
+        const clearCompletedContainer = document.getElementById('clearCompletedContainer');
+        const clearCompletedBtn = document.getElementById('clearCompletedBtn');
+
+        const customCalendarComponent = document.getElementById('customCalendarComponent');
+        const calendarActivitiesTitle = document.getElementById('calendarActivitiesTitle');
+        const selectedDateText = document.getElementById('selectedDateText');
+        const calendarActivitiesList = document.getElementById('calendarActivitiesList');
+
+        const newGoalName = document.getElementById('newGoalName');
+        const newGoalDescription = document.getElementById('newGoalDescription');
+        const newGoalStartDate = document.getElementById('newGoalStartDate');
+        const newGoalGoalDueDate = document.getElementById('newGoalGoalDueDate');
+        const newGoalStatus = document.getElementById('newGoalStatus');
+        const newGoalProgress = document.getElementById('newGoalProgress');
+        const newGoalAreaSelect = document.getElementById('newGoalArea'); // New: Area Select for Goals
+        const addGoalBtn = document.getElementById('addGoalBtn');
+        const goalsList = document.getElementById('goalsList');
+
+        const newJournalDate = document.getElementById('newJournalDate');
+        const newJournalTitle = document.getElementById('newJournalTitle');
+        const newJournalContent = document.getElementById('newJournalContent');
+        const newJournalGoalSelect = document.getElementById('newJournalGoal');
+        const newJournalAreaSelect = document.getElementById('newJournalArea'); // New: Area Select for Journal
+        const addJournalEntryBtn = document.getElementById('addJournalEntryBtn');
+        const journalEntriesList = document.getElementById('journalEntriesList');
+
+        const newHabitName = document.getElementById('newHabitName'); // New: Habit Name Input
+        const newHabitFrequency = document.getElementById('newHabitFrequency'); // New: Habit Frequency Select
+        const newHabitAreaSelect = document.getElementById('newHabitArea'); // New: Area Select for Habits
+        const addHabitBtn = document.getElementById('addHabitBtn'); // New: Add Habit Button
+        const habitsList = document.getElementById('habitsList'); // New: Habits List
+
+        const newAreaName = document.getElementById('newAreaName'); // New: Area Name Input
+        const addAreaBtn = document.getElementById('addAreaBtn'); // New: Add Area Button
+        const areasList = document.getElementById('areasList'); // New: Areas List
+
+        const alertModal = document.getElementById('alertModal');
+        const alertMessage = document.getElementById('alertMessage');
+        const alertOkBtn = document.getElementById('alertOkBtn');
+        const confirmationModal = document.getElementById('confirmationModal');
+        const confirmationMessage = document.getElementById('confirmationMessage');
+        let confirmActionCallback = null;
+        const confirmActionBtn = document.getElementById('confirmActionBtn');
+        const cancelActionBtn = document.getElementById('cancelActionBtn');
+        const toastNotification = document.getElementById('toastNotification');
+        const toastMessage = document.getElementById('toastMessage');
+
+        // Edit Goal Modal Elements
+        const editGoalModal = document.getElementById('editGoalModal');
+        const editGoalModalContent = document.getElementById('editGoalModalContent');
+        const editGoalNameInput = document.getElementById('editGoalName');
+        const editGoalDescriptionInput = document.getElementById('editGoalDescription');
+        const editGoalStartDateInput = document.getElementById('editGoalStartDate');
+        const editGoalEditDueDateInput = document.getElementById('editGoalEditDueDate');
+        const editGoalStatusSelect = document.getElementById('editGoalStatus');
+        const editGoalProgressInput = document.getElementById('editGoalProgress');
+        const editGoalAreaSelect = document.getElementById('editGoalArea'); // New: Area Select for Edit Goal
+        const saveEditGoalBtn = document.getElementById('saveEditGoalBtn');
+        const cancelEditGoalBtn = document.getElementById('cancelEditGoalBtn');
+
+        // Edit Journal Modal Elements
+        const editJournalModal = document.getElementById('editJournalModal');
+        const editJournalModalContent = document.getElementById('editJournalModalContent');
+        const editJournalTitleInput = document.getElementById('editJournalTitle');
+        const editJournalContentInput = document.getElementById('editJournalContent');
+        const editJournalDateInput = document.getElementById('editJournalDate');
+        const editJournalGoalSelect = document.getElementById('editJournalGoal');
+        const editJournalAreaSelect = document.getElementById('editJournalArea'); // New: Area Select for Edit Journal
+        const saveEditJournalBtn = document.getElementById('saveEditJournalBtn');
+        const cancelEditJournalBtn = document.getElementById('cancelEditJournalBtn');
+
+        // Edit Habit Modal Elements
+        const editHabitModal = document.getElementById('editHabitModal');
+        const editHabitModalContent = document.getElementById('editHabitModalContent');
+        const editHabitNameInput = document.getElementById('editHabitName');
+        const editHabitFrequencySelect = document.getElementById('editHabitFrequency');
+        const editHabitAreaSelect = document.getElementById('editHabitArea'); // New: Area Select for Edit Habit
+        const saveEditHabitBtn = document.getElementById('saveEditHabitBtn');
+        const cancelEditHabitBtn = document.getElementById('cancelEditHabitBtn');
+
+
+        // --- Utility Functions ---
+
+        // Show Toast Notification
+        function showToast(message, type) {
+            toastMessage.textContent = message;
+            toastNotification.classList.remove('hidden', 'bg-green-500', 'bg-red-500');
+            toastNotification.classList.add(type === 'success' ? 'bg-green-500' : 'bg-red-500');
+            toastNotification.classList.add('opacity-100');
+            setTimeout(() => {
+                toastNotification.classList.remove('opacity-100');
+                toastNotification.classList.add('hidden');
+            }, 3000);
+        }
+
+        // Show Alert Modal
+        function showAlert(message) {
+            alertMessage.textContent = message;
+            alertModal.classList.remove('hidden');
+        }
+
+        // Show Confirmation Modal
+        function showConfirmation(message, onConfirm) {
+            confirmationMessage.textContent = message;
+            confirmActionCallback = onConfirm;
+            confirmationModal.classList.remove('hidden');
+        }
+
+        // Format Date for display
+        function formatDate(date) {
+            if (!date) return '';
+            return new Date(date).toLocaleDateString('pt-BR', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        // Check if a due date is overdue
+        function isOverdue(dueDate, completed) {
+            if (!dueDate || completed) return false;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const due = new Date(dueDate);
+            due.setHours(0, 0, 0, 0);
+            return due < today;
+        }
+
+        // Get priority color
+        function getPriorityColor(priority) {
+            switch (priority) {
+                case 'Alta': return 'text-red-600 font-semibold';
+                case 'Média': return 'text-yellow-600 font-semibold';
+                case 'Baixa': return 'text-green-600 font-semibold';
+                default: return 'text-gray-600';
+            }
+        }
+
+        // --- Dark Mode Toggle ---
+        function toggleDarkMode() {
+            darkMode = !darkMode;
+            if (darkMode) {
+                document.body.classList.add('bg-gray-900', 'text-white');
+                document.body.classList.remove('bg-gradient-to-br', 'from-blue-100', 'to-purple-100', 'text-gray-800');
+                appContainer.classList.add('bg-gray-800');
+                appContainer.classList.remove('bg-white');
+                darkModeToggle.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h1M3 12H2m15.325-4.575l.707-.707M5.975 18.025l-.707.707M18.025 5.975l.707-.707M5.293 5.293l-.707-.707M12 18a6 6 0 100-12 6 6 0 000 12z" /></svg>';
+                darkModeToggle.classList.add('bg-gray-700', 'text-yellow-300');
+                darkModeToggle.classList.remove('bg-gray-200', 'text-gray-700');
+
+                // Apply dark mode to modals
+                editGoalModalContent.classList.add('bg-gray-800', 'text-white');
+                editGoalModalContent.classList.remove('bg-white', 'text-gray-800');
+                editJournalModalContent.classList.add('bg-gray-800', 'text-white');
+                editJournalModalContent.classList.remove('bg-white', 'text-gray-800');
+                editHabitModalContent.classList.add('bg-gray-800', 'text-white');
+                editHabitModalContent.classList.remove('bg-white', 'text-gray-800');
+                
+            } else {
+                document.body.classList.remove('bg-gray-900', 'text-white');
+                document.body.classList.add('bg-gradient-to-br', 'from-blue-100', 'to-purple-100', 'text-gray-800');
+                appContainer.classList.remove('bg-gray-800');
+                appContainer.classList.add('bg-white');
+                darkModeToggle.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>';
+                darkModeToggle.classList.remove('bg-gray-700', 'text-yellow-300');
+                darkModeToggle.classList.add('bg-gray-200', 'text-gray-700');
+
+                // Apply light mode to modals
+                editGoalModalContent.classList.remove('bg-gray-800', 'text-white');
+                editGoalModalContent.classList.add('bg-white', 'text-gray-800');
+                editJournalModalContent.classList.remove('bg-gray-800', 'text-white');
+                editJournalModalContent.classList.add('bg-white', 'text-gray-800');
+                editHabitModalContent.classList.remove('bg-gray-800', 'text-white');
+                editHabitModalContent.classList.add('bg-white', 'text-gray-800');
+            }
+            // Re-render calendar to apply dark mode styles
+            renderCustomCalendar();
+            renderActivities();
+            renderGoals();
+            renderJournalEntries();
+            renderHabits();
+            renderAreas();
+        }
+
+        // --- Firebase Initialization and Auth ---
+        window.onload = function() {
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    currentUserId = user.uid;
+                } else {
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined') {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                        currentUserId = auth.currentUser?.uid || crypto.randomUUID();
+                    } catch (error) {
+                        console.error("Erro ao autenticar anonimamente:", error);
+                        showAlert("Erro ao carregar o aplicativo. Tente novamente.");
+                    }
+                }
+                userIdValue.textContent = currentUserId;
+                setupFirestoreListeners();
+                // Initial render based on userId
+                renderActivities();
+                renderGoals();
+                renderJournalEntries();
+                renderCustomCalendar();
+                renderHabits();
+                renderAreas();
+                updateTotalScore();
+                requestNotificationPermission(); // Request notification permission on load
+            });
+
+            // Set current date for new activity due date input
+            const today = new Date().toISOString().split('T')[0];
+            newActivityDueDate.value = today;
+            newJournalDate.value = today;
+            newGoalStartDate.value = today;
+            newGoalGoalDueDate.value = today;
+
+            // Add event listeners
+            addActivityBtn.addEventListener('click', handleAddActivity);
+            clearNewActivityBtn.addEventListener('click', () => {
+                newActivityText.value = '';
+                newActivityCategory.value = '';
+                newActivityDueDate.value = today;
+                newActivityPriority.value = 'Baixa';
+                newActivitySubtasks.value = '';
+                newActivityGoalSelect.value = '';
+                newActivityAreaSelect.value = '';
+            });
+            searchTermInput.addEventListener('input', renderActivities);
+            filterAllBtn.addEventListener('click', () => { setFilter('all'); renderActivities(); updateFilterButtons('all'); });
+            filterActiveBtn.addEventListener('click', () => { setFilter('active'); renderActivities(); updateFilterButtons('active'); });
+            filterCompletedBtn.addEventListener('click', () => { setFilter('completed'); renderActivities(); updateFilterButtons('completed'); });
+            clearCompletedBtn.addEventListener('click', handleClearCompleted);
+            darkModeToggle.addEventListener('click', toggleDarkMode);
+
+            listViewBtn.addEventListener('click', () => setView('list'));
+            calendarViewBtn.addEventListener('click', () => setView('calendar'));
+            goalsViewBtn.addEventListener('click', () => setView('goals'));
+            journalViewBtn.addEventListener('click', () => setView('journal'));
+            habitsViewBtn.addEventListener('click', () => setView('habits')); // New: Habits View Event
+            areasViewBtn.addEventListener('click', () => setView('areas')); // New: Areas View Event
+
+            alertOkBtn.addEventListener('click', () => alertModal.classList.add('hidden'));
+            confirmActionBtn.addEventListener('click', () => {
+                if (confirmActionCallback) {
+                    confirmActionCallback();
+                }
+                confirmationModal.classList.add('hidden');
+            });
+            cancelActionBtn.addEventListener('click', () => confirmationModal.classList.add('hidden'));
+
+            addGoalBtn.addEventListener('click', handleAddGoal);
+            addJournalEntryBtn.addEventListener('click', handleAddJournalEntry);
+            addHabitBtn.addEventListener('click', handleAddHabit); // New: Add Habit Event
+            addAreaBtn.addEventListener('click', handleAddArea); // New: Add Area Event
+
+            // Event listeners for Edit Goal Modal
+            saveEditGoalBtn.addEventListener('click', saveEditedGoal);
+            cancelEditGoalBtn.addEventListener('click', cancelEditGoal);
+
+            // Event listeners for Edit Journal Modal
+            saveEditJournalBtn.addEventListener('click', saveEditedJournal);
+            cancelEditJournalBtn.addEventListener('click', cancelEditJournal);
+
+            // Event listeners for Edit Habit Modal
+            saveEditHabitBtn.addEventListener('click', saveEditedHabit);
+            cancelEditHabitBtn.addEventListener('click', cancelEditHabit);
+        };
+
+        // Setup Firestore Listeners
+        function setupFirestoreListeners() {
+            if (!currentUserId) return;
+
+            // Listen for Activities
+            const activitiesColRef = collection(db, `artifacts/${appId}/users/${currentUserId}/activities`);
+            onSnapshot(activitiesColRef, (snapshot) => {
+                activities = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data(),
+                    createdAt: doc.data().createdAt?.toDate(),
+                    dueDate: doc.data().dueDate?.toDate ? doc.data().dueDate.toDate() : (doc.data().dueDate ? new Date(doc.data().dueDate) : null),
+                    subtasks: doc.data().subtasks || [],
+                }));
+                activities.sort((a, b) => {
+                    if (a.order !== undefined && b.order !== undefined) {
+                        return a.order - b.order;
+                    }
+                    return (b.createdAt || 0) - (a.createdAt || 0);
+                });
+                renderActivities();
+                renderCustomCalendar(); // Update calendar markers
+                updateTotalScore();
+                checkOverdueItems(); // Check and send notifications for overdue items
+            }, (error) => {
+                console.error("Erro ao buscar atividades:", error);
+                showAlert("Erro ao carregar suas atividades.");
+            });
+
+            // Listen for Goals
+            const goalsColRef = collection(db, `artifacts/${appId}/users/${currentUserId}/goals`);
+            onSnapshot(goalsColRef, (snapshot) => {
+                goals = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data(),
+                    startDate: doc.data().startDate?.toDate(),
+                    dueDate: doc.data().dueDate?.toDate ? doc.data().dueDate.toDate() : (doc.data().dueDate ? new Date(doc.data().dueDate) : null),
+                }));
+                renderGoals();
+                populateGoalSelects();
+                updateTotalScore();
+                checkOverdueItems(); // Check and send notifications for overdue items
+            }, (error) => {
+                console.error("Erro ao buscar metas:", error);
+                showAlert("Erro ao carregar suas metas.");
+            });
+
+            // Listen for Journal Entries
+            const journalColRef = collection(db, `artifacts/${appId}/users/${currentUserId}/journalEntries`);
+            onSnapshot(journalColRef, (snapshot) => {
+                journalEntries = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data(),
+                    date: doc.data().date?.toDate(),
+                }));
+                journalEntries.sort((a, b) => (b.date || 0) - (a.date || 0));
+                renderJournalEntries();
+            }, (error) => {
+                console.error("Erro ao buscar entradas de diário:", error);
+                showAlert("Erro ao carregar suas entradas de diário.");
+            });
+
+            // Listen for Habits (New)
+            const habitsColRef = collection(db, `artifacts/${appId}/users/${currentUserId}/habits`);
+            onSnapshot(habitsColRef, (snapshot) => {
+                habits = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data(),
+                    lastCompleted: doc.data().lastCompleted?.toDate(),
+                }));
+                renderHabits();
+                updateTotalScore();
+            }, (error) => {
+                console.error("Erro ao buscar hábitos:", error);
+                showAlert("Erro ao carregar seus hábitos.");
+            });
+
+            // Listen for Areas (New)
+            const areasColRef = collection(db, `artifacts/${appId}/users/${currentUserId}/areas`);
+            onSnapshot(areasColRef, (snapshot) => {
+                areas = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data(),
+                }));
+                renderAreas();
+                populateAreaSelects(); // Populate area dropdowns
+            }, (error) => {
+                console.error("Erro ao buscar áreas:", error);
+                showAlert("Erro ao carregar suas áreas da vida.");
+            });
+        }
+
+        // --- View Switching ---
+        function setView(newView) {
+            viewMode = newView;
+            listView.classList.add('hidden');
+            calendarView.classList.add('hidden');
+            goalsView.classList.add('hidden');
+            journalView.classList.add('hidden');
+            habitsView.classList.add('hidden'); // New: Hide Habits View
+            areasView.classList.add('hidden'); // New: Hide Areas View
+
+            // Reset button styles
+            const allViewButtons = [listViewBtn, calendarViewBtn, goalsViewBtn, journalViewBtn, habitsViewBtn, areasViewBtn];
+            allViewButtons.forEach(btn => {
+                btn.classList.remove('bg-blue-600', 'text-white', 'shadow-md');
+                // Apply default gray classes
+                btn.classList.add('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+                // Apply dark mode specific gray classes if dark mode is active
+                if (darkMode) {
+                    btn.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+                    btn.classList.add('bg-gray-700', 'text-gray-300', 'hover:bg-gray-600');
+                }
+            });
+
+            let currentViewButton;
+            switch (viewMode) {
+                case 'list':
+                    listView.classList.remove('hidden');
+                    currentViewButton = listViewBtn;
+                    break;
+                case 'calendar':
+                    calendarView.classList.remove('hidden');
+                    currentViewButton = calendarViewBtn;
+                    renderCustomCalendar();
+                    break;
+                case 'goals':
+                    goalsView.classList.remove('hidden');
+                    currentViewButton = goalsViewBtn;
+                    break;
+                case 'journal':
+                    journalView.classList.remove('hidden');
+                    currentViewButton = journalViewBtn;
+                    break;
+                case 'habits': // New: Show Habits View
+                    habitsView.classList.remove('hidden');
+                    currentViewButton = habitsViewBtn;
+                    break;
+                case 'areas': // New: Show Areas View
+                    areasView.classList.remove('hidden');
+                    currentViewButton = areasViewBtn;
+                    break;
+            }
+            // Apply active button styles
+            currentViewButton.classList.add('bg-blue-600', 'text-white', 'shadow-md');
+            currentViewButton.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+            if (darkMode) { // Ensure dark mode specific classes are removed if blue is active
+                currentViewButton.classList.remove('bg-gray-700', 'text-gray-300', 'hover:bg-gray-600');
+            }
+        }
+
+        // --- Activities Management ---
+
+        let currentFilter = 'all';
+        function setFilter(filter) {
+            currentFilter = filter;
+        }
+
+        function updateFilterButtons(activeFilter) {
+            [filterAllBtn, filterActiveBtn, filterCompletedBtn].forEach(btn => {
+                btn.classList.remove('bg-blue-600', 'text-white', 'shadow-md');
+                // Apply default gray classes
+                btn.classList.add('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+                // Apply dark mode specific gray classes if dark mode is active
+                if (darkMode) {
+                    btn.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+                    btn.classList.add('bg-gray-700', 'text-gray-300', 'hover:bg-gray-600');
+                }
+            });
+
+            let activeBtn;
+            if (activeFilter === 'all') activeBtn = filterAllBtn;
+            else if (activeFilter === 'active') activeBtn = filterActiveBtn;
+            else if (activeFilter === 'completed') activeBtn = filterCompletedBtn;
+
+            if (activeBtn) {
+                // Apply active button styles
+                activeBtn.classList.add('bg-blue-600', 'text-white', 'shadow-md');
+                activeBtn.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+                if (darkMode) { // Ensure dark mode specific classes are removed if blue is active
+                    activeBtn.classList.remove('bg-gray-700', 'text-gray-300', 'hover:bg-gray-600');
+                }
+            }
+        }
+
+        async function handleAddActivity() {
+            const text = newActivityText.value.trim();
+            if (text === '') {
+                showAlert("A atividade não pode estar vazia.");
+                return;
+            }
+            if (!db || !currentUserId) {
+                showAlert("O banco de dados ou ID do usuário não estão prontos. Tente novamente.");
+                return;
+            }
+            try {
+                const newOrder = new Date().getTime();
+                const subtasksArray = newActivitySubtasks.value.split('\n').map(s => s.trim()).filter(s => s !== '');
+                const goalId = newActivityGoalSelect.value || null;
+                const areaId = newActivityAreaSelect.value || null; // New: Get Area ID
+
+                await addDoc(collection(db, `artifacts/${appId}/users/${currentUserId}/activities`), {
+                    text: text,
+                    completed: false,
+                    createdAt: new Date(),
+                    category: newActivityCategory.value.trim() || 'Geral',
+                    dueDate: newActivityDueDate.value ? new Date(newActivityDueDate.value) : (viewMode === 'calendar' ? selectedCalendarDate : null),
+                    priority: newActivityPriority.value,
+                    subtasks: subtasksArray,
+                    goalId: goalId,
+                    areaId: areaId, // New: Save Area ID
+                    order: newOrder,
+                });
+                newActivityText.value = '';
+                newActivityCategory.value = '';
+                newActivityDueDate.value = new Date().toISOString().split('T')[0];
+                newActivityPriority.value = 'Baixa';
+                newActivitySubtasks.value = '';
+                newActivityGoalSelect.value = '';
+                newActivityAreaSelect.value = ''; // Reset area select
+                showToast("Atividade adicionada com sucesso!", "success");
+            } catch (error) {
+                console.error("Erro ao adicionar atividade:", error);
+                showAlert("Erro ao adicionar atividade. Tente novamente.");
+            }
+        }
+
+        async function handleToggleComplete(id, completed) {
+            if (!db || !currentUserId) return;
+            try {
+                const activityRef = doc(db, `artifacts/${appId}/users/${currentUserId}/activities`, id);
+                await updateDoc(activityRef, { completed: !completed });
+                showToast("Status da atividade atualizado!", "success");
+            } catch (error) {
+                console.error("Erro ao alternar conclusão da atividade:", error);
+                showAlert("Erro ao atualizar atividade. Tente novamente.");
+            }
+        }
+
+        function handleEditClick(activity) {
+            editingActivityId = activity.id;
+            // Re-render activities to show edit form for the selected activity
+            renderActivities();
+        }
+
+        async function handleSaveEdit(id, editedText, editedCategory, editedDueDate, editedPriority, editedSubtasks, editedGoalId, editedAreaId) {
+            if (editedText.trim() === '') {
+                showAlert("A atividade não pode estar vazia.");
+                return;
+            }
+            if (!db || !currentUserId) return;
+            try {
+                const activityRef = doc(db, `artifacts/${appId}/users/${currentUserId}/activities`, id);
+                await updateDoc(activityRef, {
+                    text: editedText,
+                    category: editedCategory.trim() || 'Geral',
+                    dueDate: editedDueDate ? new Date(editedDueDate) : null,
+                    priority: editedPriority,
+                    subtasks: editedSubtasks.split('\n').map(s => s.trim()).filter(s => s !== ''),
+                    goalId: editedGoalId || null,
+                    areaId: editedAreaId || null, // New: Save Edited Area ID
+                });
+                editingActivityId = null; // Exit edit mode
+                showToast("Atividade editada com sucesso!", "success");
+            } catch (error) {
+                console.error("Erro ao salvar edição da atividade:", error);
+                showAlert("Erro ao salvar edição. Tente novamente.");
+            }
+        }
+
+        function handleCancelEdit() {
+            editingActivityId = null; // Exit edit mode
+            renderActivities(); // Re-render to show original activity
+        }
+
+        function handleDeleteActivity(id) {
+            showConfirmation("Tem certeza de que deseja excluir esta atividade?", async () => {
+                if (!db || !currentUserId) return;
+                try {
+                    const activityRef = doc(db, `artifacts/${appId}/users/${currentUserId}/activities`, id);
+                    await deleteDoc(activityRef);
+                    showToast("Atividade excluída!", "success");
+                } catch (error) {
+                    console.error("Erro ao excluir atividade:", error);
+                    showAlert("Erro ao excluir atividade. Tente novamente.");
+                }
+            });
+        }
+
+        function handleClearCompleted() {
+            showConfirmation("Tem certeza de que deseja limpar todas as atividades concluídas?", async () => {
+                if (!db || !currentUserId) return;
+                try {
+                    const completedActivities = activities.filter(activity => activity.completed);
+                    for (const activity of completedActivities) {
+                        const activityRef = doc(db, `artifacts/${appId}/users/${currentUserId}/activities`, activity.id);
+                        await deleteDoc(activityRef);
+                    }
+                    showToast("Atividades concluídas limpas!", "success");
+                } catch (error) {
+                    console.error("Erro ao limpar atividades concluídas:", error);
+                    showAlert("Erro ao limpar atividades concluídas. Tente novamente.");
+                }
+            });
+        }
+
+        // Render Activities List
+        function renderActivities() {
+            activitiesList.innerHTML = ''; // Clear current list
+
+            const filteredAndSearchedActivities = activities.filter(activity => {
+                const matchesFilter = (currentFilter === 'all') ||
+                                      (currentFilter === 'active' && !activity.completed) ||
+                                      (currentFilter === 'completed' && activity.completed);
+
+                const matchesSearch = activity.text.toLowerCase().includes(searchTermInput.value.toLowerCase()) ||
+                                      (activity.category && activity.category.toLowerCase().includes(searchTermInput.value.toLowerCase()));
+
+                return matchesFilter && matchesSearch;
+            });
+
+            if (filteredAndSearchedActivities.length === 0) {
+                activitiesList.innerHTML = `
+                    <div class="text-center py-8">
+                        <p class="text-lg mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}">Nenhuma atividade encontrada.</p>
+                        <p class="text-md ${darkMode ? 'text-gray-500' : 'text-gray-400'}">Que tal adicionar uma nova ou ajustar seu filtro/pesquisa?</p>
+                    </div>
+                `;
+            } else {
+                filteredAndSearchedActivities.forEach((activity, index) => {
+                    const listItem = document.createElement('li');
+                    listItem.draggable = true;
+                    listItem.dataset.id = activity.id; // Store ID for drag/drop
+                    
+                    // Conditionally add classes based on dark mode
+                    const baseClasses = [
+                        'flex', 'flex-col', 'sm:flex-row', 'items-start', 'sm:items-center', 'p-3', 'rounded-lg', 'shadow-sm', // Reduced padding
+                        'hover:shadow-md', 'transition', 'duration-200', 'ease-in-out', 'cursor-grab'
+                    ];
+                    if (darkMode) {
+                        baseClasses.push('bg-gray-700', 'text-white');
+                    } else {
+                        baseClasses.push('bg-gray-50', 'text-gray-800');
+                    }
+                    listItem.classList.add(...baseClasses);
+
+                    // Drag and Drop event listeners
+                    listItem.addEventListener('dragstart', (e) => {
+                        dragItem.current = index;
+                        e.currentTarget.classList.add('opacity-50'); // Visual feedback for dragging
+                    });
+                    listItem.addEventListener('dragenter', (e) => {
+                        dragOverItem.current = index;
+                        // Optional: Add visual feedback for drag over target
+                    });
+                    listItem.addEventListener('dragleave', (e) => {
+                        // Optional: Remove visual feedback for drag over target
+                    });
+                    listItem.addEventListener('dragend', (e) => {
+                        e.currentTarget.classList.remove('opacity-50'); // Remove visual feedback
+                        handleDrop(); // Call handleDrop here
+                    });
+                    listItem.addEventListener('dragover', (e) => e.preventDefault()); // Allow drop
+
+                    if (editingActivityId === activity.id) {
+                        // Edit mode
+                        const goalOptions = goals.map(goal => `<option value="${goal.id}" ${activity.goalId === goal.id ? 'selected' : ''}>${goal.name}</option>`).join('');
+                        const areaOptions = areas.map(area => `<option value="${area.id}" ${activity.areaId === area.id ? 'selected' : ''}>${area.name}</option>`).join(''); // New: Area Options
+                        listItem.innerHTML = `
+                            <div class="ml-3 flex-grow w-full space-y-1.5">
+                                <input type="text" value="${activity.text}" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 ${darkMode ? 'bg-gray-600 border-gray-500 text-white' : 'bg-white border-gray-300 text-gray-800'} activity-edit-text" />
+                                <input type="text" value="${activity.category || ''}" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 ${darkMode ? 'bg-gray-600 border-gray-500 text-white' : 'bg-white border-gray-300 text-gray-800'} activity-edit-category" placeholder="Categoria" />
+                                <input type="date" value="${activity.dueDate ? activity.dueDate.toISOString().split('T')[0] : ''}" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 ${darkMode ? 'bg-gray-600 border-gray-500 text-white' : 'bg-white border-gray-300 text-gray-800'} activity-edit-duedate" />
+                                <select class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 ${darkMode ? 'bg-gray-600 border-gray-500 text-white' : 'bg-white border-gray-300 text-gray-800'} activity-edit-priority">
+                                    <option value="Baixa" ${activity.priority === 'Baixa' ? 'selected' : ''}>Prioridade: Baixa</option>
+                                    <option value="Média" ${activity.priority === 'Média' ? 'selected' : ''}>Prioridade: Média</option>
+                                    <option value="Alta" ${activity.priority === 'Alta' ? 'selected' : ''}>Prioridade: Alta</option>
+                                </select>
+                                <textarea class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 resize-y ${darkMode ? 'bg-gray-600 border-gray-500 text-white' : 'bg-white border-gray-300 text-gray-800'} activity-edit-subtasks" placeholder="Subtarefas (uma por linha)" rows="2">${activity.subtasks ? activity.subtasks.join('\n') : ''}</textarea>
+                                <select class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 ${darkMode ? 'bg-gray-600 border-gray-500 text-white' : 'bg-white border-gray-300 text-gray-800'} activity-edit-goal">
+                                    <option value="">Vincular a uma Meta (opcional)</option>
+                                    ${goalOptions}
+                                </select>
+                                <select class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 ${darkMode ? 'bg-gray-600 border-gray-500 text-white' : 'bg-white border-gray-300 text-gray-800'} activity-edit-area">
+                                    <option value="">Vincular a uma Área da Vida (opcional)</option>
+                                    ${areaOptions}
+                                </select>
+                            </div>
+                            <div class="flex flex-shrink-0 mt-2 sm:mt-0 sm:ml-3 space-x-1.5">
+                                <button class="p-1.5 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-50 transition duration-200 ease-in-out transform hover:scale-105 save-edit-btn" title="Salvar Edição">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                </button>
+                                <button class="p-1.5 bg-gray-400 text-white rounded-md hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-opacity-50 transition duration-200 ease-in-out transform hover:scale-105 cancel-edit-btn" title="Cancelar Edição">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                            </div>
+                        `;
+                        listItem.querySelector('.save-edit-btn').addEventListener('click', () => {
+                            const editedText = listItem.querySelector('.activity-edit-text').value;
+                            const editedCategory = listItem.querySelector('.activity-edit-category').value;
+                            const editedDueDate = listItem.querySelector('.activity-edit-duedate').value;
+                            const editedPriority = listItem.querySelector('.activity-edit-priority').value;
+                            const editedSubtasks = listItem.querySelector('.activity-edit-subtasks').value;
+                            const editedGoalId = listItem.querySelector('.activity-edit-goal').value;
+                            const editedAreaId = listItem.querySelector('.activity-edit-area').value;
+                            handleSaveEdit(activity.id, editedText, editedCategory, editedDueDate, editedPriority, editedSubtasks, editedGoalId, editedAreaId);
+                        });
+                        listItem.querySelector('.cancel-edit-btn').addEventListener('click', handleCancelEdit);
+
+                    } else {
+                        // Display mode
+                        const overdueClass = isOverdue(activity.dueDate, activity.completed) ? 'text-red-600 font-semibold' : '';
+                        const completedClass = activity.completed ? 'line-through text-gray-500' : (darkMode ? 'text-white' : 'text-gray-800');
+                        const priorityColorClass = getPriorityColor(activity.priority);
+                        const subtasksHtml = activity.subtasks && activity.subtasks.length > 0 ?
+                            `<div class="mt-1.5">
+                                <span class="block text-xs font-semibold ${darkMode ? 'text-gray-300' : 'text-gray-700'}">Subtarefas:</span>
+                                <ul class="list-disc list-inside text-xs">
+                                    ${activity.subtasks.map(subtask => `<li class="${darkMode ? 'text-gray-400' : 'text-gray-600'}">${subtask}</li>`).join('')}
+                                </ul>
+                            </div>` : '';
+                        const goalName = activity.goalId ? (goals.find(g => g.id === activity.goalId)?.name || 'Meta Desconhecida') : '';
+                        const goalHtml = goalName ? `<span class="block text-xs mt-1 ${darkMode ? 'text-gray-300' : 'text-gray-600'}"><span class="font-semibold">Meta:</span> ${goalName}</span>` : '';
+                        const areaName = activity.areaId ? (areas.find(a => a.id === activity.areaId)?.name || 'Área Desconhecida') : '';
+                        const areaHtml = areaName ? `<span class="block text-xs mt-1 ${darkMode ? 'text-gray-300' : 'text-gray-600'}"><span class="font-semibold">Área:</span> ${areaName}</span>` : '';
+
+                        listItem.innerHTML = `
+                            <input type="checkbox" ${activity.completed ? 'checked' : ''} class="form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer flex-shrink-0 mt-1 sm:mt-0 toggle-complete-checkbox">
+                            <div class="ml-3 flex-grow w-full">
+                                <span class="block text-base ${completedClass} ${overdueClass}">${activity.text}</span>
+                                ${activity.category ? `<span class="block text-xs mt-1 ${darkMode ? 'text-gray-300' : 'text-gray-600'}"><span class="font-semibold">Categoria:</span> ${activity.category}</span>` : ''}
+                                ${activity.dueDate ? `<span class="block text-xs mt-1 ${isOverdue(activity.dueDate, activity.completed) ? 'text-red-600 font-semibold' : (darkMode ? 'text-gray-300' : 'text-gray-600')}"><span class="font-semibold">Vencimento:</span> ${formatDate(activity.dueDate)}</span>` : ''}
+                                ${activity.priority ? `<span class="block text-xs mt-1 ${priorityColorClass}"><span class="font-semibold">Prioridade:</span> ${activity.priority}</span>` : ''}
+                                ${goalHtml}
+                                ${areaHtml}
+                                ${subtasksHtml}
+                            </div>
+                            <div class="flex flex-shrink-0 mt-2 sm:mt-0 sm:ml-3 space-x-1.5">
+                                <button class="p-1.5 bg-purple-500 text-white rounded-md hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-opacity-50 transition duration-200 ease-in-out transform hover:scale-105 edit-activity-btn" title="Editar Atividade">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                </button>
+                                <button class="p-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-50 transition duration-200 ease-in-out transform hover:scale-105 delete-activity-btn" title="Excluir Atividade">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                </button>
+                                <button class="p-1.5 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-opacity-50 transition duration-200 ease-in-out transform hover:scale-105 generate-subtasks-btn" title="Quebrar em Subtarefas ✨">
+                                    ✨
+                                </button>
+                            </div>
+                        `;
+                        listItem.querySelector('.toggle-complete-checkbox').addEventListener('change', () => handleToggleComplete(activity.id, activity.completed));
+                        listItem.querySelector('.edit-activity-btn').addEventListener('click', () => handleEditClick(activity));
+                        listItem.querySelector('.delete-activity-btn').addEventListener('click', () => handleDeleteActivity(activity.id));
+                        listItem.querySelector('.generate-subtasks-btn').addEventListener('click', () => generateSubtasks(activity.text));
+                    }
+                    activitiesList.appendChild(listItem);
+                });
+            }
+
+            // Show/hide clear completed button
+            if (activities.some(activity => activity.completed)) {
+                clearCompletedContainer.classList.remove('hidden');
+            } else {
+                clearCompletedContainer.classList.add('hidden');
+            }
+        }
+
+        // --- Custom Calendar Implementation (from previous version) ---
+        function renderCustomCalendar() {
+            customCalendarComponent.innerHTML = ''; // Clear existing calendar
+
+            const currentMonth = selectedCalendarDate;
+            const year = currentMonth.getFullYear();
+            const month = currentMonth.getMonth();
+
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = [];
+
+            const startDayOfWeek = firstDay.getDay(); // 0 for Sunday, 1 for Monday, etc.
+            for (let i = 0; i < startDayOfWeek; i++) {
+                daysInMonth.push(null); // Placeholder for days before the 1st
+            }
+
+            for (let i = 1; i <= lastDay.getDate(); i++) {
+                daysInMonth.push(new Date(year, month, i));
+            }
+
+            const calendarHtml = `
+                <div class="flex justify-between items-center mb-3">
+                    <button id="prevMonthBtn" class="p-1.5 rounded-full ${darkMode ? 'bg-gray-600 text-white' : 'bg-gray-200 text-gray-700'} hover:bg-blue-500 hover:text-white transition-colors duration-200">
+                        &lt;
+                    </button>
+                    <h2 class="text-base font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}">
+                        ${currentMonth.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}
+                    </h2>
+                    <button id="nextMonthBtn" class="p-1.5 rounded-full ${darkMode ? 'bg-gray-600 text-white' : 'bg-gray-200 text-gray-700'} hover:bg-blue-500 hover:text-white transition-colors duration-200">
+                        &gt;
+                    </button>
+                </div>
+                <div class="grid grid-cols-7 gap-0.5 text-center text-xs font-semibold mb-1.5">
+                    ${['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => `<div class="${darkMode ? 'text-gray-400' : 'text-gray-500'}">${day}</div>`).join('')}
+                </div>
+                <div class="grid grid-cols-7 gap-0.5">
+                    ${daysInMonth.map((day, index) => {
+                        const isToday = day && day.toDateString() === new Date().toDateString();
+                        const isSelected = day && day.toDateString() === selectedCalendarDate.toDateString();
+                        let dayClasses = ['relative', 'p-1.5', 'rounded-md', 'cursor-pointer', 'flex', 'items-center', 'justify-center', 'h-8', 'w-8']; // Smaller cells
+
+                        if (day) {
+                            if (isSelected) {
+                                dayClasses.push(darkMode ? 'bg-blue-600' : 'bg-blue-500', 'text-white');
+                            } else if (isToday) {
+                                dayClasses.push(darkMode ? 'bg-blue-800' : 'bg-blue-200', darkMode ? 'text-white' : 'text-gray-900');
+                            } else {
+                                dayClasses.push(darkMode ? 'bg-gray-600' : 'bg-gray-100', darkMode ? 'text-gray-200' : 'text-gray-700');
+                            }
+                            if (!isSelected) {
+                                dayClasses.push(darkMode ? 'hover:bg-gray-500' : 'hover:bg-gray-200');
+                            }
+                        } else {
+                            dayClasses.push('opacity-0', 'pointer-events-none');
+                        }
+
+                        const dayClassString = dayClasses.join(' ');
+
+                        // Calendar tile content to show activities/goals/journal entries count
+                        const dayActivities = activities.filter(activity =>
+                            activity.dueDate && activity.dueDate.toDateString() === (day ? day.toDateString() : '')
+                        );
+                        const dayGoals = goals.filter(goal =>
+                            goal.dueDate && goal.dueDate.toDateString() === (day ? day.toDateString() : '')
+                        );
+                        const dayJournalEntries = journalEntries.filter(entry =>
+                            entry.date && entry.date.toDateString() === (day ? day.toDateString() : '')
+                        );
+
+                        const totalEvents = dayActivities.length + dayGoals.length + dayJournalEntries.length;
+
+                        const eventCountHtml = totalEvents > 0 ?
+                            `<div class="absolute bottom-0 left-0 right-0 text-center text-xs">
+                                <span class="bg-blue-500 text-white rounded-full px-1 py-0.5">
+                                    ${totalEvents}
+                                </span>
+                            </div>` : '';
+
+                        return `
+                            <div class="${dayClassString}" data-date="${day ? day.toISOString() : ''}">
+                                ${day ? day.getDate() : ''}
+                                ${eventCountHtml}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+            customCalendarComponent.innerHTML = calendarHtml;
+
+            // Add event listeners for calendar navigation
+            document.getElementById('prevMonthBtn').addEventListener('click', () => {
+                selectedCalendarDate = new Date(selectedCalendarDate.getFullYear(), selectedCalendarDate.getMonth() - 1, 1);
+                renderCustomCalendar();
+                renderActivitiesForSelectedDate();
+            });
+            document.getElementById('nextMonthBtn').addEventListener('click', () => {
+                selectedCalendarDate = new Date(selectedCalendarDate.getFullYear(), selectedCalendarDate.getMonth() + 1, 1);
+                renderCustomCalendar();
+                renderActivitiesForSelectedDate();
+            });
+
+            // Add event listeners for day clicks
+            customCalendarComponent.querySelectorAll('.grid-cols-7 > div').forEach(dayElement => {
+                if (dayElement.dataset.date) {
+                    dayElement.addEventListener('click', () => {
+                        selectedCalendarDate = new Date(dayElement.dataset.date);
+                        renderCustomCalendar(); // Re-render to highlight selected date
+                        renderActivitiesForSelectedDate();
+                        // Pre-fill new activity due date
+                        newActivityDueDate.value = selectedCalendarDate.toISOString().split('T')[0];
+                    });
+                }
+            });
+
+            renderActivitiesForSelectedDate(); // Initial render for selected date
+        }
+
+        function renderActivitiesForSelectedDate() {
+            selectedDateText.textContent = formatDate(selectedCalendarDate);
+            calendarActivitiesList.innerHTML = ''; // Clear current list
+
+            const activitiesForDate = activities.filter(activity =>
+                activity.dueDate && activity.dueDate.toDateString() === selectedCalendarDate.toDateString()
+            );
+            const goalsForDate = goals.filter(goal =>
+                goal.dueDate && goal.dueDate.toDateString() === selectedCalendarDate.toDateString()
+            );
+            const journalEntriesForDate = journalEntries.filter(entry =>
+                entry.date && entry.date.toDateString() === selectedCalendarDate.toDateString()
+            );
+
+            if (activitiesForDate.length === 0 && goalsForDate.length === 0 && journalEntriesForDate.length === 0) {
+                calendarActivitiesList.innerHTML = `
+                    <div class="text-center py-4">
+                        <p class="text-lg mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}">Nenhum item para esta data.</p>
+                        <p class="text-md ${darkMode ? 'text-gray-500' : 'text-gray-400'}">Adicione um novo acima!</p>
+                    </div>
+                `;
+            } else {
+                // Display Activities for the selected date
+                activitiesForDate.forEach(activity => {
+                    const listItem = document.createElement('li');
+                    let listItemClasses = [
+                        'flex', 'flex-col', 'sm:flex-row', 'items-start', 'sm:items-center', 'p-3', 'rounded-lg', 'shadow-sm', // Reduced padding
+                        'hover:shadow-md', 'transition', 'duration-200', 'ease-in-out'
+                    ];
+                    if (darkMode) {
+                        listItemClasses.push('bg-gray-700', 'text-white');
+                    } else {
+                        listItemClasses.push('bg-gray-50', 'text-gray-800');
+                    }
+                    listItem.classList.add(...listItemClasses);
+
+                    const overdueClass = isOverdue(activity.dueDate, activity.completed) ? 'text-red-600 font-semibold' : '';
+                    const completedClass = activity.completed ? 'line-through text-gray-500' : (darkMode ? 'text-white' : 'text-gray-800');
+                    const priorityColorClass = getPriorityColor(activity.priority);
+                    const subtasksHtml = activity.subtasks && activity.subtasks.length > 0 ?
+                        `<div class="mt-1.5">
+                            <span class="block text-xs font-semibold ${darkMode ? 'text-gray-300' : 'text-gray-700'}">Subtarefas:</span>
+                            <ul class="list-disc list-inside text-xs">
+                                ${activity.subtasks.map(subtask => `<li class="${darkMode ? 'text-gray-400' : 'text-gray-600'}">${subtask}</li>`).join('')}
+                            </ul>
+                        </div>` : '';
+                    const goalName = activity.goalId ? (goals.find(g => g.id === activity.goalId)?.name || 'Meta Desconhecida') : '';
+                    const goalHtml = goalName ? `<span class="block text-xs mt-1 ${darkMode ? 'text-gray-300' : 'text-gray-600'}"><span class="font-semibold">Meta:</span> ${goalName}</span>` : '';
+                    const areaName = activity.areaId ? (areas.find(a => a.id === activity.areaId)?.name || 'Área Desconhecida') : '';
+                    const areaHtml = areaName ? `<span class="block text-xs mt-1 ${darkMode ? 'text-gray-300' : 'text-gray-600'}"><span class="font-semibold">Área:</span> ${areaName}</span>` : '';
+
+                    listItem.innerHTML = `
+                        <input type="checkbox" ${activity.completed ? 'checked' : ''} class="form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer flex-shrink-0 mt-1 sm:mt-0 toggle-complete-checkbox">
+                        <div class="ml-3 flex-grow w-full">
+                            <span class="block text-base ${completedClass} ${overdueClass}">${activity.text}</span>
+                            ${activity.category ? `<span class="block text-xs mt-1 ${darkMode ? 'text-gray-300' : 'text-gray-600'}"><span class="font-semibold">Categoria:</span> ${activity.category}</span>` : ''}
+                            ${activity.dueDate ? `<span class="block text-xs mt-1 ${isOverdue(activity.dueDate, activity.completed) ? 'text-red-600 font-semibold' : (darkMode ? 'text-gray-300' : 'text-gray-600')}"><span class="font-semibold">Vencimento:</span> ${formatDate(activity.dueDate)}</span>` : ''}
+                            ${activity.priority ? `<span class="block text-xs mt-1 ${priorityColorClass}"><span class="font-semibold">Prioridade:</span> ${activity.priority}</span>` : ''}
+                            ${goalHtml}
+                            ${areaHtml}
+                            ${subtasksHtml}
+                        </div>
+                        <div class="flex flex-shrink-0 mt-2 sm:mt-0 sm:ml-3 space-x-1.5">
+                            <button class="p-1.5 bg-purple-500 text-white rounded-md hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-opacity-50 transition duration-200 ease-in-out transform hover:scale-105 edit-activity-btn" title="Editar Atividade">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                            </button>
+                            <button class="p-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-50 transition duration-200 ease-in-out transform hover:scale-105 delete-activity-btn" title="Excluir Atividade">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                            <button class="p-1.5 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-opacity-50 transition duration-200 ease-in-out transform hover:scale-105 generate-subtasks-btn" title="Quebrar em Subtarefas ✨">
+                                ✨
+                            </button>
+                        </div>
+                    `;
+                    listItem.querySelector('.toggle-complete-checkbox').addEventListener('change', () => handleToggleComplete(activity.id, activity.completed));
+                    listItem.querySelector('.edit-activity-btn').addEventListener('click', () => handleEditClick(activity));
+                    listItem.querySelector('.delete-activity-btn').addEventListener('click', () => handleDeleteActivity(activity.id));
+                    listItem.querySelector('.generate-subtasks-btn').addEventListener('click', () => generateSubtasks(activity.text));
+                    calendarActivitiesList.appendChild(listItem);
+                });
+
+                // Display Goals for the selected date
+                goalsForDate.forEach(goal => {
+                    const listItem = document.createElement('li');
+                    let listItemClasses = [
+                        'flex', 'flex-col', 'sm:flex-row', 'items-start', 'sm:items-center', 'p-3', 'rounded-lg', 'shadow-sm', // Reduced padding
+                        'hover:shadow-md', 'transition', 'duration-200', 'ease-in-out', 'border-l-4', 'border-blue-500' // Visual cue for goals
+                    ];
+                    if (darkMode) {
+                        listItemClasses.push('bg-gray-700', 'text-white');
+                    } else {
+                        listItemClasses.push('bg-gray-50', 'text-gray-800');
+                    }
+                    listItem.classList.add(...listItemClasses);
+
+                    const progressColor = goal.progress < 50 ? 'bg-red-500' : (goal.progress < 100 ? 'bg-yellow-500' : 'bg-green-500');
+                    const statusColor = {
+                        'Não Iniciada': 'text-gray-500',
+                        'Em Progresso': 'text-blue-500',
+                        'Concluída': 'text-green-500',
+                        'Atrasada': 'text-red-500',
+                        'Abandonada': 'text-gray-400'
+                    }[goal.status] || 'text-gray-500';
+                    const areaName = goal.areaId ? (areas.find(a => a.id === goal.areaId)?.name || 'Área Desconhecida') : ''; // New: Area Name
+                    const areaHtml = areaName ? `<span class="block text-xs mt-1 ${darkMode ? 'text-gray-300' : 'text-gray-600'}"><span class="font-semibold">Área:</span> ${areaName}</span>` : ''; // New: Area HTML
+
+                    listItem.innerHTML = `
+                        <div class="ml-3 flex-grow w-full">
+                            <span class="block text-base font-semibold">${goal.name} (Meta)</span>
+                            <p class="text-xs ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-1.5">${goal.description || 'Sem descrição.'}</p>
+                            <p class="text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}">Início: ${formatDate(goal.startDate)} | Prazo: ${formatDate(goal.dueDate)}</p>
+                            <p class="text-xs ${statusColor}">Status: ${goal.status}</p>
+                            ${areaHtml}
+                            <div class="w-full bg-gray-200 rounded-full h-2 mt-1.5 ${darkMode ? 'bg-gray-600' : ''}">
+                                <div class="${progressColor} h-2 rounded-full" style="width: ${goal.progress}%"></div>
+                            </div>
+                            <p class="text-xs font-semibold mt-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}">Progresso: ${goal.progress}%</p>
+                        </div>
+                        <div class="flex flex-shrink-0 mt-2 sm:mt-0 sm:ml-3 space-x-1.5">
+                            <button class="p-1.5 bg-purple-500 text-white rounded-md hover:bg-purple-600 edit-goal-btn" title="Editar Meta" data-goal-id="${goal.id}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                            </button>
+                            <button class="p-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 delete-goal-btn" title="Excluir Meta" data-goal-id="${goal.id}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                            <button class="p-1.5 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-opacity-50 transition duration-200 ease-in-out transform hover:scale-105 generate-next-steps-btn" title="Gerar Próximos Passos ✨">
+                                ✨
+                            </button>
+                        </div>
+                    `;
+                    listItem.querySelector('.edit-goal-btn').addEventListener('click', (event) => {
+                        const goalId = event.currentTarget.dataset.goalId;
+                        const goalToEdit = goals.find(g => g.id === goalId);
+                        if (goalToEdit) { openEditGoalModal(goalToEdit); }
+                    });
+                    listItem.querySelector('.delete-goal-btn').addEventListener('click', (event) => {
+                        const goalId = event.currentTarget.dataset.goalId;
+                        handleDeleteGoal(goalId);
+                    });
+                    listItem.querySelector('.generate-next-steps-btn').addEventListener('click', () => generateNextSteps(goal.name, goal.description));
+                    calendarActivitiesList.appendChild(listItem);
+                });
+
+                // Display Journal Entries for the selected date
+                journalEntriesForDate.forEach(entry => {
+                    const listItem = document.createElement('li');
+                    let listItemClasses = [
+                        'flex', 'flex-col', 'sm:flex-row', 'items-start', 'sm:items-center', 'p-3', 'rounded-lg', 'shadow-sm', // Reduced padding
+                        'hover:shadow-md', 'transition', 'duration-200', 'ease-in-out', 'border-l-4', 'border-green-500' // Visual cue for journal
+                    ];
+                    if (darkMode) {
+                        listItemClasses.push('bg-gray-700', 'text-white');
+                    } else {
+                        listItemClasses.push('bg-gray-50', 'text-gray-800');
+                    }
+                    listItem.classList.add(...listItemClasses);
+
+                    const goalName = entry.goalId ? (goals.find(g => g.id === entry.goalId)?.name || 'Meta Desconhecida') : '';
+                    const goalHtml = goalName ? `<p class="text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}"><span class="font-semibold">Meta Associada:</span> ${goalName}</p>` : '';
+                    const areaName = entry.areaId ? (areas.find(a => a.id === entry.areaId)?.name || 'Área Desconhecida') : '';
+                    const areaHtml = areaName ? `<span class="block text-xs mt-1 ${darkMode ? 'text-gray-300' : 'text-gray-600'}"><span class="font-semibold">Área:</span> ${areaName}</span>` : '';
+
+                    listItem.innerHTML = `
+                        <div class="ml-3 flex-grow w-full">
+                            <span class="block text-base font-semibold">${entry.title} (Diário)</span>
+                            <p class="text-xs ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-1.5">Data: ${formatDate(entry.date)}</p>
+                            <p class="text-sm ${darkMode ? 'text-gray-200' : 'text-gray-800'} whitespace-pre-wrap">${entry.content}</p>
+                            ${goalHtml}
+                            ${areaHtml}
+                        </div>
+                        <div class="flex flex-shrink-0 mt-2 sm:mt-0 sm:ml-3 space-x-1.5">
+                            <button class="p-1.5 bg-purple-500 text-white rounded-md hover:bg-purple-600 edit-journal-btn" title="Editar Entrada" data-journal-id="${entry.id}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                            </button>
+                            <button class="p-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 delete-journal-btn" title="Excluir Entrada" data-journal-id="${entry.id}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                            <button class="p-1.5 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-opacity-50 transition duration-200 ease-in-out transform hover:scale-105 reflect-journal-btn" title="Refletir sobre o Diário ✨">
+                                ✨
+                            </button>
+                        </div>
+                    `;
+                    listItem.querySelector('.edit-journal-btn').addEventListener('click', (event) => {
+                        const journalId = event.currentTarget.dataset.journalId;
+                        const entryToEdit = journalEntries.find(e => e.id === journalId);
+                        if (entryToEdit) { openEditJournalModal(entryToEdit); }
+                    });
+                    listItem.querySelector('.delete-journal-btn').addEventListener('click', (event) => {
+                        const journalId = event.currentTarget.dataset.journalId;
+                        handleDeleteJournalEntry(journalId);
+                    });
+                    listItem.querySelector('.reflect-journal-btn').addEventListener('click', () => reflectOnJournal(entry.title, entry.content));
+                    calendarActivitiesList.appendChild(listItem);
+                });
+            }
+        }
+
+        // --- Goals Management ---
+        async function handleAddGoal() {
+            const name = newGoalName.value.trim();
+            if (name === '') {
+                showAlert("O nome da meta não pode estar vazio.");
+                return;
+            }
+            if (!db || !currentUserId) {
+                showAlert("O banco de dados ou ID do usuário não estão prontos.");
+                return;
+            }
+            try {
+                const areaId = newGoalAreaSelect.value || null; // New: Get Area ID
+                await addDoc(collection(db, `artifacts/${appId}/users/${currentUserId}/goals`), {
+                    name: name,
+                    description: newGoalDescription.value.trim(),
+                    startDate: newGoalStartDate.value ? new Date(newGoalStartDate.value) : new Date(),
+                    dueDate: newGoalGoalDueDate.value ? new Date(newGoalGoalDueDate.value) : null,
+                    status: newGoalStatus.value,
+                    progress: parseInt(newGoalProgress.value),
+                    areaId: areaId, // New: Save Area ID
+                    createdAt: new Date()
+                });
+                newGoalName.value = '';
+                newGoalDescription.value = '';
+                newGoalStartDate.value = new Date().toISOString().split('T')[0];
+                newGoalGoalDueDate.value = '';
+                newGoalStatus.value = 'Não Iniciada';
+                newGoalProgress.value = '0';
+                newGoalAreaSelect.value = ''; // Reset area select
+                showToast("Meta adicionada com sucesso!", "success");
+            } catch (error) {
+                console.error("Erro ao adicionar meta:", error);
+                showAlert("Erro ao adicionar meta. Tente novamente.");
+            }
+        }
+
+        function renderGoals() {
+            goalsList.innerHTML = ''; // Clear current list
+            if (goals.length === 0) {
+                goalsList.innerHTML = `
+                    <div class="text-center py-8">
+                        <p class="text-lg mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}">Nenhuma meta encontrada.</p>
+                        <p class="text-md ${darkMode ? 'text-gray-500' : 'text-gray-400'}">Comece adicionando uma nova meta!</p>
+                    </div>
+                `;
+            } else {
+                goals.forEach(goal => {
+                    const listItem = document.createElement('li');
+                    let listItemClasses = [
+                        'p-3', 'rounded-lg', 'shadow-sm', 'border', 'border-gray-200', 'transition', 'duration-200', 'ease-in-out' // Reduced padding
+                    ];
+                    if (darkMode) {
+                        listItemClasses.push('bg-gray-700', 'text-white', 'border-gray-600');
+                    } else {
+                        listItemClasses.push('bg-white', 'text-gray-800');
+                    }
+                    listItem.classList.add(...listItemClasses);
+
+                    const progressColor = goal.progress < 50 ? 'bg-red-500' : (goal.progress < 100 ? 'bg-yellow-500' : 'bg-green-500');
+                    const statusColor = {
+                        'Não Iniciada': 'text-gray-500',
+                        'Em Progresso': 'text-blue-500',
+                        'Concluída': 'text-green-500',
+                        'Atrasada': 'text-red-500',
+                        'Abandonada': 'text-gray-400'
+                    }[goal.status] || 'text-gray-500';
+                    const areaName = goal.areaId ? (areas.find(a => a.id === goal.areaId)?.name || 'Área Desconhecida') : ''; // New: Area Name
+                    const areaHtml = areaName ? `<span class="block text-xs mt-1 ${darkMode ? 'text-gray-300' : 'text-gray-600'}"><span class="font-semibold">Área:</span> ${areaName}</span>` : ''; // New: Area HTML
+
+                    listItem.innerHTML = `
+                        <div class="flex justify-between items-center mb-1.5">
+                            <h3 class="text-base font-semibold">${goal.name}</h3>
+                            <div class="flex space-x-1.5">
+                                <button class="p-1.5 bg-purple-500 text-white rounded-md hover:bg-purple-600 edit-goal-btn" title="Editar Meta" data-goal-id="${goal.id}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                </button>
+                                <button class="p-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 delete-goal-btn" title="Excluir Meta" data-goal-id="${goal.id}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                </button>
+                                <button class="p-1.5 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-opacity-50 transition duration-200 ease-in-out transform hover:scale-105 generate-next-steps-btn" title="Gerar Próximos Passos ✨">
+                                    ✨
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-xs ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-1.5">${goal.description || 'Sem descrição.'}</p>
+                        <p class="text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}">Início: ${formatDate(goal.startDate)} | Prazo: ${formatDate(goal.dueDate)}</p>
+                        <p class="text-xs ${statusColor}">Status: ${goal.status}</p>
+                        ${areaHtml}
+                        <div class="w-full bg-gray-200 rounded-full h-2 mt-1.5 ${darkMode ? 'bg-gray-600' : ''}">
+                            <div class="${progressColor} h-2 rounded-full" style="width: ${goal.progress}%"></div>
+                        </div>
+                        <p class="text-xs font-semibold mt-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}">Progresso: ${goal.progress}%</p>
+                    `;
+                    goalsList.appendChild(listItem);
+
+                    // Add event listeners using data-goal-id
+                    listItem.querySelector('.edit-goal-btn').addEventListener('click', (event) => {
+                        const goalId = event.currentTarget.dataset.goalId;
+                        const goalToEdit = goals.find(g => g.id === goalId);
+                        if (goalToEdit) {
+                            openEditGoalModal(goalToEdit);
+                        }
+                    });
+                    listItem.querySelector('.delete-goal-btn').addEventListener('click', (event) => {
+                        const goalId = event.currentTarget.dataset.goalId;
+                        handleDeleteGoal(goalId);
+                    });
+                    listItem.querySelector('.generate-next-steps-btn').addEventListener('click', () => generateNextSteps(goal.name, goal.description));
+                });
+            }
+        }
+
+        // New functions for Edit Goal Modal
+        function openEditGoalModal(goal) {
+            editingGoalId = goal.id;
+            editGoalNameInput.value = goal.name;
+            editGoalDescriptionInput.value = goal.description || '';
+            editGoalStartDateInput.value = goal.startDate ? goal.startDate.toISOString().split('T')[0] : '';
+            editGoalEditDueDateInput.value = goal.dueDate ? goal.dueDate.toISOString().split('T')[0] : '';
+            editGoalStatusSelect.value = goal.status;
+            editGoalProgressInput.value = goal.progress;
+            editGoalAreaSelect.value = goal.areaId || ''; // Populate area select
+
+            // Apply dark mode styles if active
+            if (darkMode) {
+                editGoalModalContent.classList.add('bg-gray-800', 'text-white');
+                editGoalModalContent.classList.remove('bg-white', 'text-gray-800');
+            } else {
+                editGoalModalContent.classList.remove('bg-gray-800', 'text-white');
+                editGoalModalContent.classList.add('bg-white', 'text-gray-800');
+            }
+            // Update input/select styles in modals based on current darkMode state
+            const modalInputs = editGoalModalContent.querySelectorAll('input, textarea, select');
+            modalInputs.forEach(input => {
+                if (darkMode) {
+                    input.classList.add('bg-gray-700', 'border-gray-600', 'text-white');
+                    input.classList.remove('bg-white', 'border-gray-300', 'text-gray-800');
+                } else {
+                    input.classList.remove('bg-gray-700', 'border-gray-600', 'text-white');
+                    input.classList.add('bg-white', 'border-gray-300', 'text-gray-800');
+                }
+            });
+            const modalLabels = editGoalModalContent.querySelectorAll('label');
+            modalLabels.forEach(label => {
+                if (darkMode) {
+                    label.classList.add('text-gray-300');
+                    label.classList.remove('text-gray-700');
+                } else {
+                    label.classList.remove('text-gray-300');
+                    label.classList.add('text-gray-700');
+                }
+            });
+
+            populateAreaSelects(editGoalAreaSelect, goal.areaId); // Populate with current area selected
+            editGoalModal.classList.remove('hidden');
+        }
+
+        async function saveEditedGoal() {
+            const id = editingGoalId;
+            const newName = editGoalNameInput.value.trim();
+            const newDescription = editGoalDescriptionInput.value.trim();
+            const newStartDate = editGoalStartDateInput.value;
+            const newDueDate = editGoalEditDueDateInput.value;
+            const newStatus = editGoalStatusSelect.value;
+            const newProgress = parseInt(editGoalProgressInput.value);
+            const newAreaId = editGoalAreaSelect.value || null; // New: Get Area ID
+
+            if (newName === '') {
+                showAlert("O nome da meta não pode estar vazio.");
+                return;
+            }
+            if (isNaN(newProgress) || newProgress < 0 || newProgress > 100) {
+                showAlert("O progresso deve ser um número entre 0 e 100.");
+                return;
+            }
+
+            if (!db || !currentUserId) return;
+            try {
+                const goalRef = doc(db, `artifacts/${appId}/users/${currentUserId}/goals`, id);
+                await updateDoc(goalRef, {
+                    name: newName,
+                    description: newDescription,
+                    startDate: newStartDate ? new Date(newStartDate) : null,
+                    dueDate: newDueDate ? new Date(newDueDate) : null,
+                    status: newStatus,
+                    progress: newProgress,
+                    areaId: newAreaId, // New: Save Area ID
+                });
+                editGoalModal.classList.add('hidden');
+                editingGoalId = null;
+                showToast("Meta atualizada com sucesso!", "success");
+            } catch (error) {
+                console.error("Erro ao atualizar meta:", error);
+                showAlert("Erro ao atualizar meta. Tente novamente.");
+            }
+        }
+
+        function cancelEditGoal() {
+            editGoalModal.classList.add('hidden');
+            editingGoalId = null;
+        }
+
+        function handleDeleteGoal(id) {
+            showConfirmation("Tem certeza de que deseja excluir esta meta? Todas as atividades vinculadas permanecerão.", async () => {
+                if (!db || !currentUserId) return;
+                try {
+                    const goalRef = doc(db, `artifacts/${appId}/users/${currentUserId}/goals`, id);
+                    await deleteDoc(goalRef);
+                    showToast("Meta excluída!", "success");
+                } catch (error) {
+                    console.error("Erro ao excluir meta:", error);
+                    showAlert("Erro ao excluir meta. Tente novamente.");
+                }
+            });
+        }
+
+        // Populate goal select dropdowns
+        function populateGoalSelects() {
+            newActivityGoalSelect.innerHTML = '<option value="">Vincular a uma Meta (opcional)</option>';
+            newJournalGoalSelect.innerHTML = '<option value="">Vincular a uma Meta (opcional)</option>';
+            goals.forEach(goal => {
+                const optionActivity = document.createElement('option');
+                optionActivity.value = goal.id;
+                optionActivity.textContent = goal.name;
+                newActivityGoalSelect.appendChild(optionActivity);
+
+                const optionJournal = document.createElement('option');
+                optionJournal.value = goal.id;
+                optionJournal.textContent = goal.name;
+                newJournalGoalSelect.appendChild(optionJournal);
+            });
+        }
+
+        // --- Journal Management ---
+        async function handleAddJournalEntry() {
+            const title = newJournalTitle.value.trim();
+            const content = newJournalContent.value.trim();
+            if (title === '' || content === '') {
+                showAlert("Título e conteúdo do diário não podem estar vazios.");
+                return;
+            }
+            if (!db || !currentUserId) {
+                showAlert("O banco de dados ou ID do usuário não estão prontos.");
+                return;
+            }
+            try {
+                const areaId = newJournalAreaSelect.value || null; // New: Get Area ID
+                await addDoc(collection(db, `artifacts/${appId}/users/${currentUserId}/journalEntries`), {
+                    date: newJournalDate.value ? new Date(newJournalDate.value) : new Date(),
+                    title: title,
+                    content: content,
+                    goalId: newJournalGoalSelect.value || null,
+                    areaId: areaId, // New: Save Area ID
+                    createdAt: new Date()
+                });
+                newJournalDate.value = new Date().toISOString().split('T')[0];
+                newJournalTitle.value = '';
+                newJournalContent.value = '';
+                newJournalGoalSelect.value = '';
+                newJournalAreaSelect.value = ''; // Reset area select
+                showToast("Entrada de diário adicionada com sucesso!", "success");
+            } catch (error) {
+                console.error("Erro ao adicionar entrada de diário:", error);
+                showAlert("Erro ao adicionar entrada de diário. Tente novamente.");
+            }
+        }
+
+        function renderJournalEntries() {
+            journalEntriesList.innerHTML = ''; // Clear current list
+            if (journalEntries.length === 0) {
+                journalEntriesList.innerHTML = `
+                    <div class="text-center py-8">
+                        <p class="text-lg mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}">Nenhuma entrada de diário encontrada.</p>
+                        <p class="text-md ${darkMode ? 'text-gray-500' : 'text-gray-400'}">Comece a registrar seus pensamentos e progresso!</p>
+                    </div>
+                `;
+            } else {
+                journalEntries.forEach(entry => {
+                    const listItem = document.createElement('li');
+                    let listItemClasses = [
+                        'p-3', 'rounded-lg', 'shadow-sm', 'border', 'border-gray-200', 'transition', 'duration-200', 'ease-in-out' // Reduced padding
+                    ];
+                    if (darkMode) {
+                        listItemClasses.push('bg-gray-700', 'text-white', 'border-gray-600');
+                    } else {
+                        listItemClasses.push('bg-white', 'text-gray-800');
+                    }
+                    listItem.classList.add(...listItemClasses);
+
+                    const goalName = entry.goalId ? (goals.find(g => g.id === entry.goalId)?.name || 'Meta Desconhecida') : '';
+                    const goalHtml = goalName ? `<p class="text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}"><span class="font-semibold">Meta Associada:</span> ${goalName}</p>` : '';
+                    const areaName = entry.areaId ? (areas.find(a => a.id === entry.areaId)?.name || 'Área Desconhecida') : ''; // New: Area Name
+                    const areaHtml = areaName ? `<span class="block text-xs mt-1 ${darkMode ? 'text-gray-300' : 'text-gray-600'}"><span class="font-semibold">Área:</span> ${areaName}</span>` : ''; // New: Area HTML
+
+                    listItem.innerHTML = `
+                        <div class="flex justify-between items-center mb-1.5">
+                            <h3 class="text-base font-semibold">${entry.title}</h3>
+                            <div class="flex space-x-1.5">
+                                <button class="p-1.5 bg-purple-500 text-white rounded-md hover:bg-purple-600 edit-journal-btn" title="Editar Entrada" data-journal-id="${entry.id}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                </button>
+                                <button class="p-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 delete-journal-btn" title="Excluir Entrada" data-journal-id="${entry.id}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                </button>
+                                <button class="p-1.5 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-opacity-50 transition duration-200 ease-in-out transform hover:scale-105 reflect-journal-btn" title="Refletir sobre o Diário ✨">
+                                    ✨
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-xs ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-1.5">Data: ${formatDate(entry.date)}</p>
+                        <p class="text-sm ${darkMode ? 'text-gray-200' : 'text-gray-800'} whitespace-pre-wrap">${entry.content}</p>
+                        ${goalHtml}
+                        ${areaHtml}
+                    `;
+                    journalEntriesList.appendChild(listItem);
+
+                    listItem.querySelector('.edit-journal-btn').addEventListener('click', (event) => {
+                        const journalId = event.currentTarget.dataset.journalId;
+                        const entryToEdit = journalEntries.find(e => e.id === journalId);
+                        if (entryToEdit) {
+                            openEditJournalModal(entryToEdit);
+                        }
+                    });
+                    listItem.querySelector('.delete-journal-btn').addEventListener('click', (event) => {
+                        const journalId = event.currentTarget.dataset.journalId;
+                        handleDeleteJournalEntry(journalId);
+                    });
+                    listItem.querySelector('.reflect-journal-btn').addEventListener('click', () => reflectOnJournal(entry.title, entry.content));
+                });
+            }
+        }
+
+        function openEditJournalModal(entry) {
+            editingJournalId = entry.id;
+            editJournalTitleInput.value = entry.title;
+            editJournalContentInput.value = entry.content;
+            editJournalDateInput.value = entry.date ? entry.date.toISOString().split('T')[0] : '';
+            editJournalGoalSelect.value = entry.goalId || '';
+            editJournalAreaSelect.value = entry.areaId || ''; // Populate area select
+
+            // Apply dark mode styles if active
+            if (darkMode) {
+                editJournalModalContent.classList.add('bg-gray-800', 'text-white');
+                editJournalModalContent.classList.remove('bg-white', 'text-gray-800');
+            } else {
+                editJournalModalContent.classList.remove('bg-gray-800', 'text-white');
+                editJournalModalContent.classList.add('bg-white', 'text-gray-800');
+            }
+            // Update input/select styles in modals based on current darkMode state
+            const modalInputs = editJournalModalContent.querySelectorAll('input, textarea, select');
+            modalInputs.forEach(input => {
+                if (darkMode) {
+                    input.classList.add('bg-gray-700', 'border-gray-600', 'text-white');
+                    input.classList.remove('bg-white', 'border-gray-300', 'text-gray-800');
+                } else {
+                    input.classList.remove('bg-gray-700', 'border-gray-600', 'text-white');
+                    input.classList.add('bg-white', 'border-gray-300', 'text-gray-800');
+                }
+            });
+            const modalLabels = editJournalModalContent.querySelectorAll('label');
+            modalLabels.forEach(label => {
+                if (darkMode) {
+                    label.classList.add('text-gray-300');
+                    label.classList.remove('text-gray-700');
+                } else {
+                    label.classList.remove('text-gray-300');
+                    label.classList.add('text-gray-700');
+                }
+            });
+
+            populateGoalSelects(editJournalGoalSelect, entry.goalId); // Populate with current goal selected
+            populateAreaSelects(editJournalAreaSelect, entry.areaId); // Populate with current area selected
+            editJournalModal.classList.remove('hidden');
+        }
+
+        async function saveEditedJournal() {
+            const id = editingJournalId;
+            const newTitle = editJournalTitleInput.value.trim();
+            const newContent = editJournalContentInput.value.trim();
+            const newDate = editJournalDateInput.value;
+            const newGoalId = editJournalGoalSelect.value || null;
+            const newAreaId = editJournalAreaSelect.value || null; // New: Get Area ID
+
+            if (newTitle === '' || newContent === '') {
+                showAlert("Título e conteúdo do diário não podem estar vazios.");
+                return;
+            }
+
+            if (!db || !currentUserId) return;
+            try {
+                const entryRef = doc(db, `artifacts/${appId}/users/${currentUserId}/journalEntries`, id);
+                await updateDoc(entryRef, {
+                    title: newTitle,
+                    content: newContent,
+                    date: newDate ? new Date(newDate) : null,
+                    goalId: newGoalId,
+                    areaId: newAreaId, // New: Save Area ID
+                });
+                editJournalModal.classList.add('hidden');
+                editingJournalId = null;
+                showToast("Entrada de diário atualizada!", "success");
+            } catch (error) {
+                console.error("Erro ao atualizar entrada de diário:", error);
+                showAlert("Erro ao atualizar entrada de diário. Tente novamente.");
+            }
+        }
+
+        function cancelEditJournal() {
+            editJournalModal.classList.add('hidden');
+            editingJournalId = null;
+        }
+
+        function handleDeleteJournalEntry(id) {
+            showConfirmation("Tem certeza de que deseja excluir esta entrada de diário?", async () => {
+                if (!db || !currentUserId) return;
+                try {
+                    const entryRef = doc(db, `artifacts/${appId}/users/${currentUserId}/journalEntries`, id);
+                    await deleteDoc(entryRef);
+                    showToast("Entrada de diário excluída!", "success");
+                } catch (error) {
+                    console.error("Erro ao excluir entrada de diário:", error);
+                    showAlert("Erro ao excluir entrada de diário. Tente novamente.");
+                }
+            });
+        }
+
+        // --- Habits Management (New) ---
+        async function handleAddHabit() {
+            const name = newHabitName.value.trim();
+            if (name === '') {
+                showAlert("O nome do hábito não pode estar vazio.");
+                return;
+            }
+            if (!db || !currentUserId) {
+                showAlert("O banco de dados ou ID do usuário não estão prontos.");
+                return;
+            }
+            try {
+                const areaId = newHabitAreaSelect.value || null; // New: Get Area ID
+                await addDoc(collection(db, `artifacts/${appId}/users/${currentUserId}/habits`), {
+                    name: name,
+                    frequency: newHabitFrequency.value,
+                    lastCompleted: null, // Track last completion date
+                    streak: 0, // Current streak
+                    areaId: areaId, // New: Save Area ID
+                    createdAt: new Date()
+                });
+                newHabitName.value = '';
+                newHabitFrequency.value = 'daily';
+                newHabitAreaSelect.value = ''; // Reset area select
+                showToast("Hábito adicionado com sucesso!", "success");
+            } catch (error) {
+                console.error("Erro ao adicionar hábito:", error);
+                showAlert("Erro ao adicionar hábito. Tente novamente.");
+            }
+        }
+
+        async function handleToggleHabitComplete(habitId, lastCompleted) {
+            if (!db || !currentUserId) return;
+            try {
+                const habitRef = doc(db, `artifacts/${appId}/users/${currentUserId}/habits`, habitId);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                const habit = habits.find(h => h.id === habitId);
+                if (!habit) return;
+
+                let newStreak = habit.streak;
+                let newLastCompleted = today;
+
+                // Check if already completed today
+                if (lastCompleted && lastCompleted.toDateString() === today.toDateString()) {
+                    showAlert("Hábito já marcado como concluído hoje!");
+                    return;
+                }
+
+                // Check for streak continuation
+                if (habit.frequency === 'daily') {
+                    const yesterday = new Date(today);
+                    yesterday.setDate(today.getDate() - 1);
+                    if (lastCompleted && lastCompleted.toDateString() === yesterday.toDateString()) {
+                        newStreak++;
+                    } else {
+                        newStreak = 1; // Reset streak if not consecutive
+                    }
+                } else if (habit.frequency === 'weekly') {
+                    // For weekly, check if last completed was in the previous week
+                    // This is a simplified check, can be more robust for specific week definitions
+                    const oneWeekAgo = new Date(today);
+                    oneWeekAgo.setDate(today.getDate() - 7);
+                    if (lastCompleted && lastCompleted >= oneWeekAgo) {
+                        newStreak++;
+                    } else {
+                        newStreak = 1;
+                    }
+                }
+
+                await updateDoc(habitRef, {
+                    lastCompleted: newLastCompleted,
+                    streak: newStreak
+                });
+                showToast("Hábito atualizado!", "success");
+            } catch (error) {
+                console.error("Erro ao atualizar hábito:", error);
+                showAlert("Erro ao atualizar hábito. Tente novamente.");
+            }
+        }
+
+        function renderHabits() {
+            habitsList.innerHTML = ''; // Clear current list
+            if (habits.length === 0) {
+                habitsList.innerHTML = `
+                    <div class="text-center py-8">
+                        <p class="text-lg mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}">Nenhum hábito encontrado.</p>
+                        <p class="text-md ${darkMode ? 'text-gray-500' : 'text-gray-400'}">Comece a construir novos hábitos!</p>
+                    </div>
+                `;
+            } else {
+                habits.forEach(habit => {
+                    const listItem = document.createElement('li');
+                    let listItemClasses = [
+                        'p-3', 'rounded-lg', 'shadow-sm', 'border', 'border-gray-200', 'transition', 'duration-200', 'ease-in-out' // Reduced padding
+                    ];
+                    if (darkMode) {
+                        listItemClasses.push('bg-gray-700', 'text-white', 'border-gray-600');
+                    } else {
+                        listItemClasses.push('bg-white', 'text-gray-800');
+                    }
+                    listItem.classList.add(...listItemClasses);
+
+                    const areaName = habit.areaId ? (areas.find(a => a.id === habit.areaId)?.name || 'Área Desconhecida') : '';
+                    const areaHtml = areaName ? `<span class="block text-xs mt-1 ${darkMode ? 'text-gray-300' : 'text-gray-600'}"><span class="font-semibold">Área:</span> ${areaName}</span>` : '';
+
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const isCompletedToday = habit.lastCompleted && habit.lastCompleted.toDateString() === today.toDateString();
+                    const completeButtonClass = isCompletedToday ? 'bg-green-500 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600';
+
+                    listItem.innerHTML = `
+                        <div class="flex justify-between items-center mb-1.5">
+                            <h3 class="text-base font-semibold">${habit.name}</h3>
+                            <div class="flex space-x-1.5">
+                                <button class="p-1.5 ${completeButtonClass} text-white rounded-md complete-habit-btn" title="${isCompletedToday ? 'Concluído Hoje' : 'Marcar Concluído'}" ${isCompletedToday ? 'disabled' : ''}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                </button>
+                                <button class="p-1.5 bg-purple-500 text-white rounded-md hover:bg-purple-600 edit-habit-btn" title="Editar Hábito" data-habit-id="${habit.id}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                </button>
+                                <button class="p-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 delete-habit-btn" title="Excluir Hábito" data-habit-id="${habit.id}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-xs ${darkMode ? 'text-gray-300' : 'text-gray-700'}">Frequência: ${habit.frequency === 'daily' ? 'Diário' : 'Semanal'}</p>
+                        <p class="text-xs ${darkMode ? 'text-gray-300' : 'text-gray-700'}">Última Conclusão: ${habit.lastCompleted ? formatDate(habit.lastCompleted) : 'Nunca'}</p>
+                        <p class="text-xs font-semibold ${darkMode ? 'text-gray-300' : 'text-gray-700'}">Sequência: ${habit.streak}</p>
+                        ${areaHtml}
+                    `;
+                    habitsList.appendChild(listItem);
+
+                    listItem.querySelector('.complete-habit-btn').addEventListener('click', () => handleToggleHabitComplete(habit.id, habit.lastCompleted));
+                    listItem.querySelector('.edit-habit-btn').addEventListener('click', (event) => {
+                        const habitId = event.currentTarget.dataset.habitId;
+                        const habitToEdit = habits.find(h => h.id === habitId);
+                        if (habitToEdit) { openEditHabitModal(habitToEdit); }
+                    });
+                    listItem.querySelector('.delete-habit-btn').addEventListener('click', (event) => {
+                        const habitId = event.currentTarget.dataset.habitId;
+                        handleDeleteHabit(habitId);
+                    });
+                });
+            }
+        }
+
+        function openEditHabitModal(habit) {
+            editingHabitId = habit.id;
+            editHabitNameInput.value = habit.name;
+            editHabitFrequencySelect.value = habit.frequency;
+            editHabitAreaSelect.value = habit.areaId || '';
+
+            if (darkMode) {
+                editHabitModalContent.classList.add('bg-gray-800', 'text-white');
+                editHabitModalContent.classList.remove('bg-white', 'text-gray-800');
+            } else {
+                editHabitModalContent.classList.remove('bg-gray-800', 'text-white');
+                editHabitModalContent.classList.add('bg-white', 'text-gray-800');
+            }
+            const modalInputs = editHabitModalContent.querySelectorAll('input, textarea, select');
+            modalInputs.forEach(input => {
+                if (darkMode) {
+                    input.classList.add('bg-gray-700', 'border-gray-600', 'text-white');
+                    input.classList.remove('bg-white', 'border-gray-300', 'text-gray-800');
+                } else {
+                    input.classList.remove('bg-gray-700', 'border-gray-600', 'text-white');
+                    input.classList.add('bg-white', 'border-gray-300', 'text-gray-800');
+                }
+            });
+            populateAreaSelects(editHabitAreaSelect, habit.areaId);
+            editHabitModal.classList.remove('hidden');
+        }
+
+        async function saveEditedHabit() {
+            const id = editingHabitId;
+            const newName = editHabitNameInput.value.trim();
+            const newFrequency = editHabitFrequencySelect.value;
+            const newAreaId = editHabitAreaSelect.value || null;
+
+            if (newName === '') {
+                showAlert("O nome do hábito não pode estar vazio.");
+                return;
+            }
+
+            if (!db || !currentUserId) return;
+            try {
+                const habitRef = doc(db, `artifacts/${appId}/users/${currentUserId}/habits`, id);
+                await updateDoc(habitRef, {
+                    name: newName,
+                    frequency: newFrequency,
+                    areaId: newAreaId,
+                });
+                editHabitModal.classList.add('hidden');
+                editingHabitId = null;
+                showToast("Hábito atualizado com sucesso!", "success");
+            } catch (error) {
+                console.error("Erro ao atualizar hábito:", error);
+                showAlert("Erro ao atualizar hábito. Tente novamente.");
+            }
+        }
+
+        function cancelEditHabit() {
+            editHabitModal.classList.add('hidden');
+            editingHabitId = null;
+        }
+
+        function handleDeleteHabit(id) {
+            showConfirmation("Tem certeza de que deseja excluir este hábito?", async () => {
+                if (!db || !currentUserId) return;
+                try {
+                    const habitRef = doc(db, `artifacts/${appId}/users/${currentUserId}/habits`, id);
+                    await deleteDoc(habitRef);
+                    showToast("Hábito excluído!", "success");
+                } catch (error) {
+                    console.error("Erro ao excluir hábito:", error);
+                    showAlert("Erro ao excluir hábito. Tente novamente.");
+                }
+            });
+        }
+
+        // --- Areas Management (New) ---
+        async function handleAddArea() {
+            const name = newAreaName.value.trim();
+            if (name === '') {
+                showAlert("O nome da área não pode estar vazio.");
+                return;
+            }
+            if (!db || !currentUserId) {
+                showAlert("O banco de dados ou ID do usuário não estão prontos.");
+                return;
+            }
+            try {
+                await addDoc(collection(db, `artifacts/${appId}/users/${currentUserId}/areas`), {
+                    name: name,
+                    createdAt: new Date()
+                });
+                newAreaName.value = '';
+                showToast("Área adicionada com sucesso!", "success");
+            } catch (error) {
+                    console.error("Erro ao adicionar área:", error);
+                showAlert("Erro ao adicionar área. Tente novamente.");
+            }
+        }
+
+        function renderAreas() {
+            areasList.innerHTML = ''; // Clear current list
+            if (areas.length === 0) {
+                areasList.innerHTML = `
+                    <div class="text-center py-8">
+                        <p class="text-lg mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}">Nenhuma área da vida encontrada.</p>
+                        <p class="text-md ${darkMode ? 'text-gray-500' : 'text-gray-400'}">Adicione áreas para organizar seu desenvolvimento!</p>
+                    </div>
+                `;
+            } else {
+                areas.forEach(area => {
+                    const listItem = document.createElement('li');
+                    let listItemClasses = [
+                        'p-3', 'rounded-lg', 'shadow-sm', 'border', 'border-gray-200', 'transition', 'duration-200', 'ease-in-out', // Reduced padding
+                        'flex', 'justify-between', 'items-center'
+                    ];
+                    if (darkMode) {
+                        listItemClasses.push('bg-gray-700', 'text-white', 'border-gray-600');
+                    } else {
+                        listItemClasses.push('bg-white', 'text-gray-800');
+                    }
+                    listItem.classList.add(...listItemClasses);
+
+                    listItem.innerHTML = `
+                        <span class="text-base font-semibold">${area.name}</span>
+                        <button class="p-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 delete-area-btn" title="Excluir Área" data-area-id="${area.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                    `;
+                    areasList.appendChild(listItem);
+
+                    listItem.querySelector('.delete-area-btn').addEventListener('click', (event) => {
+                        const areaId = event.currentTarget.dataset.areaId;
+                        handleDeleteArea(areaId);
+                    });
+                });
+            }
+        }
+
+        function handleDeleteArea(id) {
+            showConfirmation("Tem certeza de que deseja excluir esta área? Isso não excluirá atividades, metas ou diários vinculados, mas eles perderão a associação.", async () => {
+                if (!db || !currentUserId) return;
+                try {
+                    const areaRef = doc(db, `artifacts/${appId}/users/${currentUserId}/areas`, id);
+                    await deleteDoc(areaRef);
+                    showToast("Área excluída!", "success");
+                } catch (error) {
+                    console.error("Erro ao excluir área:", error);
+                    showAlert("Erro ao excluir área. Tente novamente.");
+                }
+            });
+        }
+
+        // Populate Area Select dropdowns (for activities, goals, journal, habits)
+        function populateAreaSelects(selectElement = null, selectedAreaId = null) {
+            const selectsToUpdate = selectElement ? [selectElement] : [
+                newActivityAreaSelect, newGoalAreaSelect, newJournalAreaSelect, newHabitAreaSelect,
+                editGoalAreaSelect, editJournalAreaSelect, editHabitAreaSelect // For edit modals
+            ];
+
+            selectsToUpdate.forEach(select => {
+                const currentSelectedValue = select.value; // Store current value to re-select after update
+                select.innerHTML = '<option value="">Vincular a uma Área da Vida (opcional)</option>';
+                areas.forEach(area => {
+                    const option = document.createElement('option');
+                    option.value = area.id;
+                    option.textContent = area.name;
+                    select.appendChild(option);
+                });
+                // Attempt to re-select the previously selected value or the explicitly passed selectedAreaId
+                if (selectedAreaId) {
+                    select.value = selectedAreaId;
+                } else if (currentSelectedValue) {
+                    select.value = currentSelectedValue;
+                }
+            });
+        }
+
+        // --- Gamification ---
+        function updateTotalScore() {
+            let score = 0;
+            // Points for completed activities
+            activities.forEach(activity => {
+                if (activity.completed) {
+                    let activityPoints = 1; // Base points
+                    if (activity.priority === 'Média') activityPoints += 1;
+                    if (activity.priority === 'Alta') activityPoints += 2;
+                    score += activityPoints;
+                }
+            });
+            // Points for completed goals
+            goals.forEach(goal => {
+                if (goal.status === 'Concluída') {
+                    score += 10; // More points for goals
+                }
+            });
+            // Points for habit streaks (simplified: 1 point per streak count)
+            habits.forEach(habit => {
+                score += habit.streak;
+            });
+
+            totalScore = score;
+            totalScoreDisplay.textContent = totalScore;
+            updateUserLevel();
+            updateAchievements();
+        }
+
+        function updateUserLevel() {
+            // Simple leveling system: Level 1 (0-9 points), Level 2 (10-24), Level 3 (25-49), etc.
+            if (totalScore < 10) {
+                userLevel = 1;
+            } else if (totalScore < 25) {
+                userLevel = 2;
+            } else if (totalScore < 50) {
+                userLevel = 3;
+            } else if (totalScore < 100) {
+                userLevel = 4;
+            } else {
+                userLevel = 5; // Max level for this example
+            }
+            userLevelDisplay.textContent = userLevel;
+        }
+
+        function updateAchievements() {
+            let achievements = [];
+            if (activities.filter(a => a.completed).length >= 5) {
+                achievements.push("Início Produtivo (5 atividades)");
+            }
+            if (activities.filter(a => a.completed).length >= 20) {
+                achievements.push("Mestre das Tarefas (20 atividades)");
+            }
+            if (goals.filter(g => g.status === 'Concluída').length >= 1) {
+                achievements.push("Primeira Meta Concluída!");
+            }
+            if (goals.filter(g => g.status === 'Concluída').length >= 3) {
+                achievements.push("Conquistador de Metas (3 metas)");
+            }
+            if (habits.some(h => h.streak >= 7)) {
+                achievements.push("Hábito de 7 Dias!");
+            }
+            if (habits.some(h => h.streak >= 30)) {
+                achievements.push("Hábito de 30 Dias!");
+            }
+
+            if (achievements.length > 0) {
+                achievementsDisplay.innerHTML = 'Conquistas: ' + achievements.map(a => `<span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 rounded-full mr-1 mb-1 ${darkMode ? 'bg-blue-800 text-blue-100' : ''}">${a}</span>`).join('');
+            } else {
+                achievementsDisplay.textContent = 'Nenhuma conquista ainda. Continue trabalhando!';
+            }
+        }
+
+        // --- Notifications ---
+        function requestNotificationPermission() {
+            if (!("Notification" in window)) {
+                console.log("Este navegador não suporta notificações de desktop.");
+                return;
+            }
+
+            if (Notification.permission === "default") {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") {
+                        console.log("Permissão para notificações concedida.");
+                    } else {
+                        console.log("Permissão para notificações negada.");
+                    }
+                });
+            }
+        }
+
+        function sendNotification(title, body) {
+            if (Notification.permission === "granted") {
+                new Notification(title, { body: body });
+            }
+        }
+
+        function checkOverdueItems() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Check overdue activities
+            activities.forEach(activity => {
+                if (!activity.completed && activity.dueDate && isOverdue(activity.dueDate, activity.completed)) {
+                    if (!activity.notifiedOverdue) { // Prevent multiple notifications for the same item
+                        sendNotification("Atividade Atrasada!", `A atividade "${activity.text}" está atrasada.`);
+                        // Optionally update Firestore to mark as notified
+                        // updateDoc(doc(db, `artifacts/${appId}/users/${currentUserId}/activities`, activity.id), { notifiedOverdue: true });
+                    }
+                }
+            });
+
+            // Check overdue goals
+            goals.forEach(goal => {
+                if (goal.status !== 'Concluída' && goal.status !== 'Abandonada' && goal.dueDate && isOverdue(goal.dueDate, false)) {
+                    if (!goal.notifiedOverdue) { // Prevent multiple notifications for the same item
+                        sendNotification("Meta Atrasada!", `A meta "${goal.name}" está atrasada.`);
+                        // Optionally update Firestore to mark as notified
+                        // updateDoc(doc(db, `artifacts/${appId}/users/${currentUserId}/goals`, goal.id), { notifiedOverdue: true });
+                    }
+                }
+            });
+        }
+
+        // Drag and Drop Handlers (already in place, just ensuring they are here)
+        let dragItem = { current: null };
+        let dragOverItem = { current: null };
+
+        async function handleDrop() {
+            if (dragItem.current === null || dragOverItem.current === null) return;
+
+            const dragItemContent = activities[dragItem.current];
+            const newActivitiesOrder = [...activities];
+
+            newActivitiesOrder.splice(dragItem.current, 1);
+            newActivitiesOrder.splice(dragOverItem.current, 0, dragItemContent);
+
+            if (db && currentUserId) {
+                try {
+                    // Update the 'order' field in Firestore for all affected items
+                    for (let i = 0; i < newActivitiesOrder.length; i++) {
+                        const activity = newActivitiesOrder[i];
+                        const activityRef = doc(db, `artifacts/${appId}/users/${currentUserId}/activities`, activity.id);
+                        await updateDoc(activityRef, { order: i });
+                    }
+                    showToast("Ordem das atividades atualizada!", "success");
+                } catch (error) {
+                    console.error("Erro ao atualizar a ordem das atividades:", error);
+                    showAlert("Erro ao reordenar atividades. Tente novamente.");
+                }
+            }
+
+            dragItem.current = null;
+            dragOverItem.current = null;
+        }
+
+        // --- LLM Integration Functions (Gemini API) ---
+        async function callGeminiApi(promptText) {
+            showToast("Gerando sugestões com IA...", "success"); // Indicate loading
+            try {
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: promptText }] });
+                const payload = { contents: chatHistory };
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    showToast("Sugestões geradas!", "success");
+                    return text;
+                } else {
+                    console.error("Estrutura de resposta inesperada do Gemini API:", result);
+                    showAlert("Erro ao gerar sugestões. Tente novamente mais tarde.");
+                    return "Não foi possível gerar sugestões.";
+                }
+            } catch (error) {
+                console.error("Erro ao chamar Gemini API:", error);
+                showAlert("Erro de conexão com a IA. Verifique sua rede ou tente novamente.");
+                return "Erro de conexão.";
+            }
+        }
+
+        // Generate Subtasks for an Activity
+        async function generateSubtasks(activityText) {
+            const prompt = `Quebre a seguinte atividade em 3 a 5 subtarefas acionáveis e concisas. Liste-as usando hífens. Atividade: "${activityText}"`;
+            const response = await callGeminiApi(prompt);
+            showAlert(`Sugestões de Subtarefas para "${activityText}":\n\n${response}`);
+        }
+
+        // Generate Next Steps for a Goal
+        async function generateNextSteps(goalName, goalDescription) {
+            const prompt = `Para a meta "${goalName}" (Descrição: "${goalDescription}"), liste 3 a 5 próximos passos acionáveis que podem ser tomados para progredir em direção a ela. Liste-os usando hífens.`;
+            const response = await callGeminiApi(prompt);
+            showAlert(`Próximos Passos Sugeridos para "${goalName}":\n\n${response}`);
+        }
+
+        // Reflect on a Journal Entry
+        async function reflectOnJournal(journalTitle, journalContent) {
+            const prompt = `Leia a seguinte entrada de diário e forneça um breve resumo e um insight ou afirmação positiva baseada nela.
+            Título: "${journalTitle}"
+            Conteúdo: "${journalContent}"`;
+            const response = await callGeminiApi(prompt);
+            showAlert(`Reflexão sobre "${journalTitle}":\n\n${response}`);
+        }
+
+    </script>
+</body>
+</html>
