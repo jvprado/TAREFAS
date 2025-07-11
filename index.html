@@ -435,6 +435,7 @@
         let selectedCalendarDate = new Date();
         let totalScore = 0; // Simplified gamification: total score
         let userLevel = 1; // Gamification: user level
+        let editingActivityId = null; // Correctly declared globally
         let editingGoalId = null; // New state for tracking which goal is being edited
         let editingJournalId = null; // New state for tracking which journal entry is being edited
         let editingHabitId = null; // New state for tracking which habit is being edited
@@ -1818,8 +1819,8 @@
 
                     const goalName = entry.goalId ? (goals.find(g => g.id === entry.goalId)?.name || 'Meta Desconhecida') : '';
                     const goalHtml = goalName ? `<p class="text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}"><span class="font-semibold">Meta Associada:</span> ${goalName}</p>` : '';
-                    const areaName = entry.areaId ? (areas.find(a => a.id === entry.areaId)?.name || 'Área Desconhecida') : ''; // New: Area Name
-                    const areaHtml = areaName ? `<span class="block text-xs mt-1 ${darkMode ? 'text-gray-300' : 'text-gray-600'}"><span class="font-semibold">Área:</span> ${areaName}</span>` : ''; // New: Area HTML
+                    const areaName = entry.areaId ? (areas.find(a => a.id === entry.areaId)?.name || 'Área Desconhecida') : '';
+                    const areaHtml = areaName ? `<span class="block text-xs mt-1 ${darkMode ? 'text-gray-300' : 'text-gray-600'}"><span class="font-semibold">Área:</span> ${areaName}</span>` : '';
 
                     listItem.innerHTML = `
                         <div class="flex justify-between items-center mb-1.5">
